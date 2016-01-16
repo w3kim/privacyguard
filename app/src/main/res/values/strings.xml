@@ -2,5 +2,6 @@
 <resources>
     <string name="app_name">Privacy Guard</string>
     <string name="connect">Enable Privacy Guard</string>
+    <string name="connected">Privacy Guard Enabled</string>
     <string name="disconnect">Disconnect</string>
 </resources>
