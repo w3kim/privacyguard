@@ -14,7 +14,7 @@ import java.util.WeakHashMap;
  */
 public class LoggerManager {
     //Default dir in case cache file cannot be located
-    private static final String DEFAULT_DIRECTORY = "/data/data/com.y59song.UI.PrivacyGuard.PrivacyGuard/Cache/Log";
+    private static final String DEFAULT_DIRECTORY = "/Android/data/com.PrivacyGuard/cache/Log";
     //One Logger per Package
     private static final Map<String, Logger> loggerHashMap = new WeakHashMap<String, Logger>();
 
@@ -50,14 +50,11 @@ public class LoggerManager {
     public static String getDiskCacheDir() {
         String cachePath;
         File cacheFile;
-        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
-                || !Environment.isExternalStorageRemovable()) {
-            cacheFile = PrivacyGuard.getAppContext().getExternalCacheDir();
-        } else {
-            cacheFile = PrivacyGuard.getAppContext().getCacheDir();
-        }
+        cacheFile = PrivacyGuard.getAppContext().getCacheDir();
+        //TODO: delete cache when appropriate (after send a crash log or app restart?)
         if (cacheFile == null) {
-            Log.w("LoggerManager", "Not able to get Disk Cache Directory.");
+            //Should no happen
+            Log.e("LoggerManager", "Not able to get Disk Cache Directory.");
             cachePath = DEFAULT_DIRECTORY;
         } else {
             cachePath = cacheFile.getAbsolutePath() + File.separator + "Log";
