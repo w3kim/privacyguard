@@ -20,10 +20,13 @@
 package com.PrivacyGuard.UI;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.security.KeyChain;
+import android.app.AlertDialog;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -56,7 +59,7 @@ public class MainActivity extends Activity {
     public final static String EXTRA_SIZE = "com.y59song.UI.PrivacyGuard.SIZE";
     public final static String EXTRA_DATE_FORMAT = "com.y59song.UI.PrivacyGuard.DATE";
     private static String TAG = MainActivity.class.getSimpleName();
-    private static Logger logger = LoggerManager.getLogger(MainActivity.class.getPackage().getName());
+    private static Logger logger = LoggerManager.getLogger("UI");
     private Intent intent;
     private ArrayList<HashMap<String, String>> list;
     private Button buttonConnect;
@@ -94,7 +97,9 @@ public class MainActivity extends Activity {
         if(MyVpnService.isRunning()){
             buttonConnect.setText(R.string.connected);
             buttonConnect.setEnabled(false);
+
         }else{
+            logger.w(TAG, "VPN service has stopped");
             buttonConnect.setText(R.string.connect);
             buttonConnect.setEnabled(true);
         }
@@ -226,8 +231,31 @@ public class MainActivity extends Activity {
     // Gets called immediately before onResume() when activity is re-starting
     protected void onActivityResult(int request, int result, Intent data) {
         if (result == RESULT_OK) {
-            logger.i(TAG,"Starting VPN service");
-            startService(intent);
+            logger.i(TAG, "Starting VPN service");
+            ComponentName service = startService(intent);
+            if (service == null) {
+                logger.w(TAG, "Failed to start VPN service");
+
+                //TODO: or use AppCompat.Dialog?
+                // 1. Instantiate an AlertDialog.Builder with its constructor
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+                // 2. Chain together various setter methods to set the dialog characteristics
+                builder.setMessage(R.string.mainActivity_warn_dialog_msg)
+                        .setTitle(R.string.mainActivity_warn_dialog_title)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+                // 3. Get the AlertDialog from create()
+                AlertDialog warnDialog = builder.create();
+                warnDialog.show();
+            } else {
+                buttonConnect.setText(R.string.connected);
+                buttonConnect.setEnabled(false);
+            }
         }
     }
 
