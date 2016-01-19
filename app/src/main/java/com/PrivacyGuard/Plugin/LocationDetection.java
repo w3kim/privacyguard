@@ -6,8 +6,7 @@ import android.location.LocationManager;
 
 import com.PrivacyGuard.UI.BuildConfig;
 import com.PrivacyGuard.UI.MainActivity;
-import com.PrivacyGuard.Utilities.Logger.Logger;
-import com.PrivacyGuard.Utilities.Logger.LoggerManager;
+import com.PrivacyGuard.Utilities.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +15,8 @@ import java.util.List;
  * Created by frank on 2014-06-23.
  */
 public class LocationDetection implements IPlugin {
-  private static Logger logger = LoggerManager.getLogger(BuildConfig.APPLICATION_ID);
-  private final static String TAG = MainActivity.class.getSimpleName();
+
+  private final static String TAG = LocationDetection.class.getSimpleName();
   private LocationManager locationManager;
   private ArrayList<Double> latitudes = new ArrayList<Double>(), longitudes = new ArrayList<Double>();
 
@@ -42,14 +41,14 @@ public class LocationDetection implements IPlugin {
       double latD = Math.round(loc.getLatitude() * 100) / 100.0, lonD = Math.round(loc.getLongitude() * 100) / 100.0;
       latS = "" + latD;
       lonS = "" + lonD;
-      logger.d(TAG, "" + loc.getLatitude() + " " + loc.getLongitude() + " " + latS + " " + lonS);
+      Logger.d(TAG, "" + loc.getLatitude() + " " + loc.getLongitude() + " " + latS + " " + lonS);
       ret |= requestStr.contains(latS) && requestStr.contains(lonS);
       ret |= requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", ""));
-      logger.d(TAG, latS + " " + lonS);
+      Logger.d(TAG, latS + " " + lonS);
     }
 
     String msg = ret ? "is leaking Location:" + latS + ";" + lonS : null;
-    if(ret) logger.d(TAG + "request : " + ret + " : " + requestStr.length(), requestStr);
+    if(ret) Logger.d(TAG + "request : " + ret + " : " + requestStr.length(), requestStr);
     return msg;
   }
 

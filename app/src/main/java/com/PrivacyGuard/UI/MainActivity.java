@@ -23,6 +23,7 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.location.Location;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.security.KeyChain;
@@ -36,8 +37,7 @@ import com.PrivacyGuard.Utilities.Certificate.CertificateManager;
 import com.PrivacyGuard.Utilities.Database.DataLeak;
 import com.PrivacyGuard.Utilities.Database.DatabaseHandler;
 import com.PrivacyGuard.Utilities.Database.LocationLeak;
-import com.PrivacyGuard.Utilities.Logger.Logger;
-import com.PrivacyGuard.Utilities.Logger.LoggerManager;
+import com.PrivacyGuard.Utilities.Logger;
 import com.PrivacyGuard.Utilities.MyVpnService;
 
 import java.security.KeyStoreException;
@@ -59,7 +59,6 @@ public class MainActivity extends Activity {
     public final static String EXTRA_SIZE = "com.y59song.UI.PrivacyGuard.SIZE";
     public final static String EXTRA_DATE_FORMAT = "com.y59song.UI.PrivacyGuard.DATE";
     private static String TAG = MainActivity.class.getSimpleName();
-    private static Logger logger = LoggerManager.getLogger("UI");
     private Intent intent;
     private ArrayList<HashMap<String, String>> list;
     private Button buttonConnect;
@@ -87,6 +86,9 @@ public class MainActivity extends Activity {
                 }
             }
         });
+
+        Logger.logTraffic("test", "test", new ArrayList<Location>());
+        Logger.logToFile("test","test");
     }
 
     @Override
@@ -99,7 +101,7 @@ public class MainActivity extends Activity {
             buttonConnect.setEnabled(false);
 
         }else{
-            logger.w(TAG, "VPN service has stopped");
+            Logger.w(TAG, "VPN service has stopped");
             buttonConnect.setText(R.string.connect);
             buttonConnect.setEnabled(true);
         }
@@ -231,10 +233,10 @@ public class MainActivity extends Activity {
     // Gets called immediately before onResume() when activity is re-starting
     protected void onActivityResult(int request, int result, Intent data) {
         if (result == RESULT_OK) {
-            logger.i(TAG, "Starting VPN service");
+            Logger.i(TAG, "Starting VPN service");
             ComponentName service = startService(intent);
             if (service == null) {
-                logger.w(TAG, "Failed to start VPN service");
+                Logger.w(TAG, "Failed to start VPN service");
 
                 //TODO: or use AppCompat.Dialog?
                 // 1. Instantiate an AlertDialog.Builder with its constructor

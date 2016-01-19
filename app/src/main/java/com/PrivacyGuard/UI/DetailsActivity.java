@@ -14,13 +14,12 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.PrivacyGuard.Utilities.Database.DataLeak;
 import com.PrivacyGuard.Utilities.Database.DatabaseHandler;
-import com.PrivacyGuard.Utilities.Logger.Logger;
-import com.PrivacyGuard.Utilities.Logger.LoggerManager;
+import com.PrivacyGuard.Utilities.Logger;
 
 import java.util.List;
 
 public class DetailsActivity extends Activity{
-    private static Logger logger = LoggerManager.getLogger(DetailsActivity.class.getPackage().getName());
+
     private static String TAG = DetailsActivity.class.getSimpleName();
     GoogleMap googleMap;
     private String name;
@@ -78,7 +77,7 @@ public class DetailsActivity extends Activity{
         String message = "";
 
         /*if (!PrivacyGuard.checkLocationPermission()) {
-            logger.w(TAG,"No Location Access");
+            Logger.w(TAG,"No Location Access");
             //TODO: ask for permission http://developer.android.com/training/permissions/requesting.html#perm-check
         }else*/{
             googleMap = ((MapFragment)getFragmentManager().findFragmentById(R.id.map)).getMap();

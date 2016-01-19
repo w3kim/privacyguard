@@ -19,13 +19,10 @@
 
 package com.PrivacyGuard.Forwader;
 
-import android.util.Log;
-
 
 import com.PrivacyGuard.Plugin.IPlugin;
 import com.PrivacyGuard.Plugin.LocationDetection;
-import com.PrivacyGuard.Utilities.Logger.Logger;
-import com.PrivacyGuard.Utilities.Logger.LoggerManager;
+import com.PrivacyGuard.Utilities.Logger;
 import com.PrivacyGuard.Utilities.MyVpnService;
 
 import org.sandrop.webscarab.model.ConnectionDescriptor;
@@ -41,7 +38,7 @@ import java.util.Locale;
 
 
 public class MySocketForwarder extends Thread {
-    private static Logger logger = LoggerManager.getLogger(MySocketForwarder.class.getPackage().getName());
+
   private static String TAG = MySocketForwarder.class.getSimpleName();
   private static boolean EVALUATE = false;
   private static boolean DEBUG = false;
@@ -68,16 +65,16 @@ public class MySocketForwarder extends Thread {
       clientServer.start();
       serverClient.start();
 
-      logger.d(TAG, "Start forwarding");
+      Logger.d(TAG, "Start forwarding");
       while (clientServer.isAlive())
         clientServer.join();
       while (serverClient.isAlive())
         serverClient.join();
       clientSocket.close();
       serverSocket.close();
-        logger.d(TAG, "Stop forwarding");
+        Logger.d(TAG, "Stop forwarding");
     }else{
-        logger.d(TAG, "skipping socket forwarding because of invalid sockets");
+        Logger.d(TAG, "skipping socket forwarding because of invalid sockets");
       if (clientSocket != null && clientSocket.isConnected()){
         clientSocket.close();
       }
@@ -115,12 +112,12 @@ public class MySocketForwarder extends Thread {
                     ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
                     if (des != null) appName = des.getNamespace();
                 }
-                logger.logToFile(TAG, "IP : " + destIP + "\nRequest : " + msg, ((LocationDetection) plugins.get(0)).getLocations());
+                Logger.logTraffic(TAG, "IP : " + destIP + "\nRequest : " + msg, ((LocationDetection) plugins.get(0)).getLocations());
             }
         } else {
             for(IPlugin plugin : plugins) {
                 String ret = outgoing ? plugin.handleRequest(msg) : plugin.handleResponse(msg);
-                logger.d(TAG, "" + (outgoing) + " " + got + " " + msg);
+                Logger.d(TAG, "" + (outgoing) + " " + got + " " + msg);
                 if(ret != null && outgoing) {
                     if(appName == null) {
                         ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
@@ -130,26 +127,26 @@ public class MySocketForwarder extends Thread {
                         }
                     }
                     if (ret.contains("IMEI IMEI")){
-                        Log.i(TAG,"OMG WTF WHY IS THIS HAPPENING " + ret);
+                        Logger.i(TAG,"OMG WTF WHY IS THIS HAPPENING " + ret);
                     }
                     vpnService.notify(appName, ret);
-                    Log.i(TAG,"ICETEST " + ret);
+                    Logger.i(TAG,"ICETEST " + ret);
 
-                    logger.logToFile(TAG, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret, ((LocationDetection) plugins.get(0)).getLocations());
+                    Logger.logTraffic(TAG, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret, ((LocationDetection) plugins.get(0)).getLocations());
                 }
                 msg = outgoing ? plugin.modifyRequest(msg) : plugin.modifyResponse(msg);
             }
             //buff = msg.getBytes();
             //got = buff.length;
-            if(PROTECT && outgoing) logger.d(TAG, new String(Arrays.copyOfRange(buff, 0, got)));
+            if(PROTECT && outgoing) Logger.d(TAG, new String(Arrays.copyOfRange(buff, 0, got)));
         }
         out.write(buff, 0, got);
         out.flush();
       }
-        logger.d(TAG, "SocketForwarder stop, got : " + got);
+        Logger.d(TAG, "SocketForwarder stop, got : " + got);
     } catch (Exception ignore) {
       ignore.printStackTrace();
-        logger.d(TAG, "outgoing : " + outgoing);
+        Logger.d(TAG, "outgoing : " + outgoing);
     }
     /*
     finally {

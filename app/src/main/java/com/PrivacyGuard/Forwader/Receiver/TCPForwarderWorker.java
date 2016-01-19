@@ -3,8 +3,7 @@ package com.PrivacyGuard.Forwader.Receiver;
 import com.PrivacyGuard.Forwader.TCPForwarder;
 import com.PrivacyGuard.Network.LocalServer;
 import com.PrivacyGuard.UI.BuildConfig;
-import com.PrivacyGuard.Utilities.Logger.Logger;
-import com.PrivacyGuard.Utilities.Logger.LoggerManager;
+import com.PrivacyGuard.Utilities.Logger;
 
 import java.io.IOException;
 import java.net.*;
@@ -19,7 +18,7 @@ import java.util.Iterator;
  * Created by y59song on 03/04/14.
  */
 public class TCPForwarderWorker extends Thread {
-  private static Logger logger = LoggerManager.getLogger(BuildConfig.APPLICATION_ID);
+
   private final String TAG = "TCPReceiver";
   private SocketChannel socketChannel;
   private Selector selector;
@@ -35,12 +34,12 @@ public class TCPForwarderWorker extends Thread {
       socketChannel = SocketChannel.open();
       Socket socket = socketChannel.socket();
       socket.setReuseAddress(true);
-      logger.d(TAG, srcAddress.getHostAddress() + ":" + src_port + " " + LocalServer.port);
+      Logger.d(TAG, srcAddress.getHostAddress() + ":" + src_port + " " + LocalServer.port);
       socket.bind(new InetSocketAddress(InetAddress.getLocalHost(), src_port));
       try {
         socketChannel.connect(new InetSocketAddress(LocalServer.port));
       } catch (ConnectException e) {
-        logger.d(TAG, "Connect exception !!! : " + srcAddress.getHostAddress() + ":" + src_port + " " + LocalServer.port);
+        Logger.d(TAG, "Connect exception !!! : " + srcAddress.getHostAddress() + ":" + src_port + " " + LocalServer.port);
         e.printStackTrace();
         return;
       }
@@ -108,7 +107,7 @@ public class TCPForwarderWorker extends Thread {
             msg.clear();
             int length = socketChannel.read(msg);
             if(length <= 0 || isInterrupted()) {
-              logger.d("TCPForwarderWorker", "Length from socket channel is " + length + " : " + socketChannel.socket().getPort());
+              Logger.d("TCPForwarderWorker", "Length from socket channel is " + length + " : " + socketChannel.socket().getPort());
               close();
               return;
             }
@@ -126,7 +125,7 @@ public class TCPForwarderWorker extends Thread {
   }
 
   public void close() {
-    logger.d(TAG, "Receiver stop " + socketChannel.socket().getLocalPort());
+    Logger.d(TAG, "Receiver stop " + socketChannel.socket().getLocalPort());
     try {
       if(selector != null) selector.close();
     } catch (IOException e) {

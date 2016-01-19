@@ -20,14 +20,13 @@
 package com.PrivacyGuard.Forwader;
 
 import com.PrivacyGuard.UI.BuildConfig;
-import com.PrivacyGuard.Utilities.Logger.LoggerManager;
 import com.PrivacyGuard.Utilities.MyVpnService;
 import com.PrivacyGuard.Network.IP.IPDatagram;
 import com.PrivacyGuard.Network.IP.IPHeader;
 import com.PrivacyGuard.Network.IP.IPPayLoad;
 import com.PrivacyGuard.Network.UDP.UDPDatagram;
 import com.PrivacyGuard.Network.UDP.UDPHeader;
-import com.PrivacyGuard.Utilities.Logger.Logger;
+import com.PrivacyGuard.Utilities.Logger;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -41,7 +40,7 @@ import java.util.Arrays;
  * Created by frank on 2014-03-29.
  */
 public class UDPForwarder extends AbsForwarder implements ICommunication {
-  private static Logger logger = LoggerManager.getLogger(BuildConfig.APPLICATION_ID);
+
   private InetAddress dstAddress;
   private int dstPort;
   private DatagramSocket socket;
@@ -104,7 +103,7 @@ public class UDPForwarder extends AbsForwarder implements ICommunication {
       socket.receive(response);
     } catch (SocketTimeoutException e) {
       close();
-      logger.d("UDPForwarder", "Socket Timeout Exception");
+      Logger.d("UDPForwarder", "Socket Timeout Exception");
       return null;
     } catch (IOException e) {
       e.printStackTrace();

@@ -3,10 +3,9 @@ package com.PrivacyGuard.Network;
 import android.util.Log;
 import com.PrivacyGuard.Forwader.MySocketForwarder;
 import com.PrivacyGuard.UI.BuildConfig;
-import com.PrivacyGuard.Utilities.Logger.LoggerManager;
 import com.PrivacyGuard.Utilities.MyVpnService;
 import com.PrivacyGuard.Network.SSL.SSLSocketBuilder;
-import com.PrivacyGuard.Utilities.Logger.Logger;
+import com.PrivacyGuard.Utilities.Logger;
 import org.sandrop.webscarab.model.ConnectionDescriptor;
 import org.sandrop.webscarab.plugin.proxy.SiteData;
 
@@ -25,7 +24,7 @@ import java.util.Set;
  * Created by frank on 2014-06-03.
  */
 public class LocalServer extends Thread {
-  private static Logger logger = LoggerManager.getLogger(BuildConfig.APPLICATION_ID);
+
   private static final boolean DEBUG = true;
   private static final String TAG = LocalServer.class.getSimpleName();
   public static int port = 12345;
@@ -68,15 +67,15 @@ public class LocalServer extends Thread {
         targetChannel.connect(new InetSocketAddress(descriptor.getRemoteAddress(), descriptor.getRemotePort()));
         if(descriptor != null && descriptor.getRemotePort() == SSLPort && !sslPinning.contains(descriptor.getRemoteAddress())) {
           SiteData remoteData = vpnService.getHostNameResolver().getSecureHost(client, descriptor, true);
-          logger.d(TAG, "Begin Handshake : " + remoteData.tcpAddress + " " + remoteData.name);
+          Logger.d(TAG, "Begin Handshake : " + remoteData.tcpAddress + " " + remoteData.name);
           SSLSocket ssl_client = SSLSocketBuilder.negotiateSSL(client, remoteData, false, vpnService.getSSlSocketFactoryFactory());
           SSLSession session = ssl_client.getSession();
-          logger.d(TAG, "After Handshake : " + remoteData.tcpAddress + " " + remoteData.name + " " + session + " is valid : " + session.isValid());
+          Logger.d(TAG, "After Handshake : " + remoteData.tcpAddress + " " + remoteData.name + " " + session + " is valid : " + session.isValid());
           if(session.isValid()) {
             client = ssl_client;
             target = ((SSLSocketFactory) SSLSocketFactory.getDefault()).createSocket(target, descriptor.getRemoteAddress(), descriptor.getRemotePort(), true);
             SSLSession tmp_session = ((SSLSocket) target).getSession();
-            logger.d(TAG, "Remote Handshake : " + tmp_session + " is valid : " + tmp_session.isValid());
+            Logger.d(TAG, "Remote Handshake : " + tmp_session + " is valid : " + tmp_session.isValid());
           } else {
             sslPinning.add(descriptor.getRemoteAddress());
             ssl_client.close();
@@ -98,12 +97,12 @@ public class LocalServer extends Thread {
   public void run() {
     while(!isInterrupted()) {
       try {
-        logger.d(TAG, "Accepting");
+        Logger.d(TAG, "Accepting");
         SocketChannel socketChannel = serverSocketChannel.accept();
         Socket socket = socketChannel.socket();
-        logger.d(TAG, "Receiving : " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort());
+        Logger.d(TAG, "Receiving : " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort());
         new Thread(new ForwarderHandler(socket)).start();
-        logger.d(TAG, "Not blocked");
+        Logger.d(TAG, "Not blocked");
       } catch (Exception e) {
         e.printStackTrace();
       }
