@@ -1,5 +1,7 @@
 package com.PrivacyGuard.Utilities.Database;
 
+import com.PrivacyGuard.Utilities.StringUtil;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -71,17 +73,12 @@ public class DataLeak {
 
     // getting leak type
     public String getLeakType(){
-        this._leakType = this._leakType.replace("is leaking", "");
-        int endIndex = this._leakType.lastIndexOf(":");
-        if (endIndex != -1) {
-            this._leakType = this._leakType.substring(0, endIndex);
-        }
-        this._leakType = this._leakType.trim();
         return this._leakType;
     }
 
     // setting leak type
     public void setLeakType(String type){
+        type = StringUtil.typeFromMsg(type);
         this._leakType = type;
     }
 

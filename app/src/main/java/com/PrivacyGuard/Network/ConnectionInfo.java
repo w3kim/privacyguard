@@ -1,6 +1,6 @@
 package com.PrivacyGuard.Network;
 
-import com.PrivacyGuard.Forwader.AbsForwarder;
+import com.PrivacyGuard.Network.Forwader.AbsForwarder;
 import com.PrivacyGuard.Network.IP.IPDatagram;
 import com.PrivacyGuard.Network.IP.IPHeader;
 

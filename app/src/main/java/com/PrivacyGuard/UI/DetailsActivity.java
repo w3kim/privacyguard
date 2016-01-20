@@ -7,20 +7,19 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import com.PrivacyGuard.Utilities.Database.DataLeak;
+import com.PrivacyGuard.Utilities.Database.DatabaseHandler;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.PrivacyGuard.Utilities.Database.DataLeak;
-import com.PrivacyGuard.Utilities.Database.DatabaseHandler;
-import com.PrivacyGuard.Utilities.Logger;
 
 import java.util.List;
 
 public class DetailsActivity extends Activity{
 
-    private static String TAG = DetailsActivity.class.getSimpleName();
+    private static String TAG = "UI";
     GoogleMap googleMap;
     private String name;
 

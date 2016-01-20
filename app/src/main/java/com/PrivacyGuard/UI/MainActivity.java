@@ -20,25 +20,24 @@
 package com.PrivacyGuard.UI;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.location.Location;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.security.KeyChain;
-import android.app.AlertDialog;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 
-import com.PrivacyGuard.Utilities.Certificate.CertificateManager;
+import com.PrivacyGuard.MyVpnService;
+import com.PrivacyGuard.Utilities.CertificateManager;
 import com.PrivacyGuard.Utilities.Database.DataLeak;
 import com.PrivacyGuard.Utilities.Database.DatabaseHandler;
 import com.PrivacyGuard.Utilities.Database.LocationLeak;
 import com.PrivacyGuard.Utilities.Logger;
-import com.PrivacyGuard.Utilities.MyVpnService;
 
 import java.security.KeyStoreException;
 import java.util.ArrayList;
@@ -58,7 +57,7 @@ public class MainActivity extends Activity {
     public final static String EXTRA_APP = "com.y59song.UI.PrivacyGuard.APP";
     public final static String EXTRA_SIZE = "com.y59song.UI.PrivacyGuard.SIZE";
     public final static String EXTRA_DATE_FORMAT = "com.y59song.UI.PrivacyGuard.DATE";
-    private static String TAG = MainActivity.class.getSimpleName();
+    private static String TAG = "UI";
     private Intent intent;
     private ArrayList<HashMap<String, String>> list;
     private Button buttonConnect;
@@ -86,15 +85,12 @@ public class MainActivity extends Activity {
                 }
             }
         });
-
-        Logger.logTraffic("test", "test", new ArrayList<Location>());
-        Logger.logToFile("test","test");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        populateDb();
+        populateLeakList();
 
         if(MyVpnService.isRunning()){
             buttonConnect.setText(R.string.connected);
@@ -110,7 +106,7 @@ public class MainActivity extends Activity {
     /**
      *
      */
-    public void populateDb () {
+    public void populateLeakList() {
         // -----------------------------------------------------------------------
         // Database Fetch
         DatabaseHandler db = new DatabaseHandler(this);
@@ -233,16 +229,11 @@ public class MainActivity extends Activity {
     // Gets called immediately before onResume() when activity is re-starting
     protected void onActivityResult(int request, int result, Intent data) {
         if (result == RESULT_OK) {
-            Logger.i(TAG, "Starting VPN service");
+            Logger.d(TAG, "Starting VPN service");
             ComponentName service = startService(intent);
             if (service == null) {
                 Logger.w(TAG, "Failed to start VPN service");
-
-                //TODO: or use AppCompat.Dialog?
-                // 1. Instantiate an AlertDialog.Builder with its constructor
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
-
-                // 2. Chain together various setter methods to set the dialog characteristics
                 builder.setMessage(R.string.mainActivity_warn_dialog_msg)
                         .setTitle(R.string.mainActivity_warn_dialog_title)
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -250,11 +241,10 @@ public class MainActivity extends Activity {
                                 dialog.cancel();
                             }
                         });
-
-                // 3. Get the AlertDialog from create()
                 AlertDialog warnDialog = builder.create();
                 warnDialog.show();
             } else {
+                Logger.d(TAG, "VPN service started");
                 buttonConnect.setText(R.string.connected);
                 buttonConnect.setEnabled(false);
             }

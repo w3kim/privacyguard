@@ -33,7 +33,6 @@ public class Logger {
      * @return SD storage for cash or internal storage for cash
      */
     public static File getDiskCacheDir() {
-        String cachePath = null;
         File cacheFile = null;
         if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
                 || !Environment.isExternalStorageRemovable()) {
@@ -47,7 +46,6 @@ public class Logger {
     }
 
     public static File getDiskFileDir() {
-        String filePath;
         File file = null;
         if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
                 || !Environment.isExternalStorageRemovable()) {
@@ -65,7 +63,6 @@ public class Logger {
      * @param msg
      * @param locations
      */
-    //TODO: could create new class for traffic logger
     public static void logTraffic(String tag, String msg, ArrayList<Location> locations) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {

@@ -8,7 +8,7 @@ import java.util.Date;
  */
 public class LocationLeak {
     //private variables
-    int _id;
+    //int _id;
     String _appName;
     String _location;
     String _timestamp;
@@ -19,7 +19,7 @@ public class LocationLeak {
 
     // constructor
     public LocationLeak(int id, String name, String location, String timestamp){
-        this._id = id;
+        //this._id = id;
         this._appName = name;
         this._location = location;
         this._timestamp = timestamp;
@@ -27,21 +27,21 @@ public class LocationLeak {
 
     // constructor
     public LocationLeak(int id, String name, String location){
-        this._id = id;
+        //this._id = id;
         this._appName = name;
         this._location = location;
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
         this._timestamp = dateFormat.format(new Date());
     }
     // getting ID
-    public int getID(){
+    /*public int getID(){
         return this._id;
-    }
+    }*/
 
     // setting id
-    public void setID(int id){
+    /*public void setID(int id){
         this._id = id;
-    }
+    }*/
 
     // getting name
     public String getAppName(){

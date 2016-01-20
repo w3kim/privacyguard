@@ -1,17 +1,15 @@
 package com.PrivacyGuard.Network;
 
 import android.util.Log;
-import com.PrivacyGuard.Forwader.MySocketForwarder;
-import com.PrivacyGuard.UI.BuildConfig;
-import com.PrivacyGuard.Utilities.MyVpnService;
+
+import com.PrivacyGuard.MyVpnService;
+import com.PrivacyGuard.Network.Forwader.MySocketForwarder;
 import com.PrivacyGuard.Network.SSL.SSLSocketBuilder;
 import com.PrivacyGuard.Utilities.Logger;
+
 import org.sandrop.webscarab.model.ConnectionDescriptor;
 import org.sandrop.webscarab.plugin.proxy.SiteData;
 
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -20,16 +18,19 @@ import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+
 /**
  * Created by frank on 2014-06-03.
  */
 public class LocalServer extends Thread {
 
+  public static final int SSLPort = 443;
   private static final boolean DEBUG = true;
   private static final String TAG = LocalServer.class.getSimpleName();
   public static int port = 12345;
-  public static final int SSLPort = 443;
-
   private ServerSocketChannel serverSocketChannel;
   private MyVpnService vpnService;
   private Set<String> sslPinning = new HashSet<String>();
@@ -49,6 +50,23 @@ public class LocalServer extends Thread {
     serverSocketChannel.socket().setReuseAddress(true);
     serverSocketChannel.socket().bind(null);
     port = serverSocketChannel.socket().getLocalPort();
+  }
+
+  @Override
+  public void run() {
+    while (!isInterrupted()) {
+      try {
+        Logger.d(TAG, "Accepting");
+        SocketChannel socketChannel = serverSocketChannel.accept();
+        Socket socket = socketChannel.socket();
+        Logger.d(TAG, "Receiving : " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort());
+        new Thread(new ForwarderHandler(socket)).start();
+        Logger.d(TAG, "Not blocked");
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    Log.d(TAG, "Stop Listening");
   }
 
   private class ForwarderHandler implements Runnable {
@@ -91,22 +109,5 @@ public class LocalServer extends Thread {
         e.printStackTrace();
       }
     }
-  }
-
-  @Override
-  public void run() {
-    while(!isInterrupted()) {
-      try {
-        Logger.d(TAG, "Accepting");
-        SocketChannel socketChannel = serverSocketChannel.accept();
-        Socket socket = socketChannel.socket();
-        Logger.d(TAG, "Receiving : " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort());
-        new Thread(new ForwarderHandler(socket)).start();
-        Logger.d(TAG, "Not blocked");
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-    Log.d(TAG, "Stop Listening");
   }
 }
