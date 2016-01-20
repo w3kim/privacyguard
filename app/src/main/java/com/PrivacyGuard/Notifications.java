@@ -1,4 +1,4 @@
-package com.PrivacyGuard.UI;
+package com.PrivacyGuard;
 
 /**
  * Created by MAK on 20/10/2015.

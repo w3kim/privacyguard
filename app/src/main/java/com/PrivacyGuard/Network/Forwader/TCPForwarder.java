@@ -17,12 +17,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Forwader;
+package com.PrivacyGuard.Network.Forwader;
 
 import android.util.Log;
-import com.PrivacyGuard.Forwader.Receiver.TCPForwarderWorker;
-import com.PrivacyGuard.UI.BuildConfig;
-import com.PrivacyGuard.Utilities.MyVpnService;
+import com.PrivacyGuard.Network.Forwader.Receiver.TCPForwarderWorker;
+import com.PrivacyGuard.MyVpnService;
 import com.PrivacyGuard.Network.IP.IPDatagram;
 import com.PrivacyGuard.Network.IP.IPPayLoad;
 import com.PrivacyGuard.Network.TCP.TCPDatagram;

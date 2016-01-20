@@ -1,4 +1,4 @@
-package com.PrivacyGuard.Utilities.Resolver;
+package com.PrivacyGuard.Network.Resolver;
 
 import android.content.Context;
 import android.content.pm.PackageInfo;

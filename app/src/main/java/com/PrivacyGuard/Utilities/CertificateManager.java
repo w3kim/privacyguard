@@ -1,4 +1,4 @@
-package com.PrivacyGuard.Utilities.Certificate;
+package com.PrivacyGuard.Utilities;
 
 import org.sandrop.webscarab.plugin.proxy.SSLSocketFactoryFactory;
 

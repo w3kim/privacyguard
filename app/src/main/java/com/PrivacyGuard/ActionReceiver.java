@@ -1,4 +1,4 @@
-package com.PrivacyGuard.UI;
+package com.PrivacyGuard;
 
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
@@ -11,13 +11,12 @@ import com.PrivacyGuard.Utilities.Database.DatabaseHandler;
 /**
  * Created by MAK on 20/10/2015.
  */
-public class ActionReceiver extends BroadcastReceiver {// Activity {//
+public class ActionReceiver extends BroadcastReceiver {
     public ActionReceiver() {
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        String  appName = intent.getStringExtra("appName");
         int notifyId = intent.getIntExtra("notificationId",0);
 
         // cancel notification

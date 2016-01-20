@@ -17,9 +17,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.UI;
+package com.PrivacyGuard.Utilities;
 
-import com.PrivacyGuard.Utilities.MyVpnService;
+import com.PrivacyGuard.MyVpnService;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;

@@ -1,8 +1,7 @@
-package com.PrivacyGuard.Forwader.Receiver;
+package com.PrivacyGuard.Network.Forwader.Receiver;
 
-import com.PrivacyGuard.Forwader.TCPForwarder;
+import com.PrivacyGuard.Network.Forwader.TCPForwarder;
 import com.PrivacyGuard.Network.LocalServer;
-import com.PrivacyGuard.UI.BuildConfig;
 import com.PrivacyGuard.Utilities.Logger;
 
 import java.io.IOException;

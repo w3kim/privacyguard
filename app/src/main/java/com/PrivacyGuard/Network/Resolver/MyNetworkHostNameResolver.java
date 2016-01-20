@@ -1,10 +1,10 @@
-package com.PrivacyGuard.Utilities.Resolver;
+package com.PrivacyGuard.Network.Resolver;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import com.PrivacyGuard.Utilities.MyVpnService;
+import com.PrivacyGuard.MyVpnService;
 import org.sandrop.webscarab.model.ConnectionDescriptor;
 import org.sandrop.webscarab.plugin.proxy.SiteData;
 import org.sandroproxy.utils.DNSProxy;

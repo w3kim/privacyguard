@@ -17,13 +17,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Forwader;
+package com.PrivacyGuard.Network.Forwader;
 
 
 import com.PrivacyGuard.Plugin.IPlugin;
 import com.PrivacyGuard.Plugin.LocationDetection;
 import com.PrivacyGuard.Utilities.Logger;
-import com.PrivacyGuard.Utilities.MyVpnService;
+import com.PrivacyGuard.MyVpnService;
 
 import org.sandrop.webscarab.model.ConnectionDescriptor;
 
@@ -132,7 +132,7 @@ public class MySocketForwarder extends Thread {
                     vpnService.notify(appName, ret);
                     Logger.i(TAG,"ICETEST " + ret);
 
-                    Logger.logTraffic(TAG, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret, ((LocationDetection) plugins.get(0)).getLocations());
+                    Logger.logTraffic(appName, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret, ((LocationDetection) plugins.get(0)).getLocations());
                 }
                 msg = outgoing ? plugin.modifyRequest(msg) : plugin.modifyResponse(msg);
             }
