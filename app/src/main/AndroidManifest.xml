@@ -21,10 +21,10 @@
     <!-- End of copy. -->
 
     <application
-        android:icon="@drawable/ic_launcher"
-        android:label="@string/app_name"
         android:name="com.PrivacyGuard.PrivacyGuard"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name">
 
         <meta-data android:name="com.google.android.maps.v2.API_KEY"
             android:value="AIzaSyBL9tVkRjRtayPIpBnnri7MfAlka-lkwyU"/>
@@ -34,31 +34,35 @@
 
         <activity
             android:name="com.PrivacyGuard.UI.MainActivity"
-            android:screenOrientation="portrait"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <receiver android:name="com.PrivacyGuard.UI.ActionReceiver" >
+        <activity
+            android:name="com.PrivacyGuard.UI.DetailsActivity"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />>
+        </activity>
+
+        <receiver android:name="com.PrivacyGuard.ActionReceiver">
         </receiver>
 
         <service
-            android:name="com.PrivacyGuard.Utilities.MyVpnService"
+            android:name="com.PrivacyGuard.MyVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE" >
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
 
-        <activity
-            android:name="com.PrivacyGuard.UI.DetailsActivity"
-            android:screenOrientation="portrait"
-            android:label="@string/app_name">
-        </activity>
+
     </application>
 
 </manifest>
