@@ -16,15 +16,8 @@
 5. Imported project from local repo
 
 
-
-
-
-
-
-
-
-
 ## ToDo List
+- Improve logging practice
 - Social Media integration (be able to share leakage statistics)
 - OnResume/OnStop as well as testing app life cycle/corner cases (force stop, etc.)
 - Stress testing (ensure VPN does not cause performance issues

@@ -2,30 +2,38 @@ package com.PrivacyGuard.Utilities;
 
 import org.sandrop.webscarab.plugin.proxy.SSLSocketFactoryFactory;
 
-import javax.security.cert.CertificateException;
-import javax.security.cert.X509Certificate;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableKeyException;
 import java.util.Date;
 import java.util.Enumeration;
+
+import javax.security.cert.CertificateException;
+import javax.security.cert.X509Certificate;
 
 /**
  * Created by Near on 15-01-06.
  */
 public class CertificateManager {
+
+    static SSLSocketFactoryFactory mFactoryFactory;
   // generate CA certificate but return a ssl socket factory factory which use this certificate
   public static SSLSocketFactoryFactory generateCACertificate(String dir, String caName, String certName, String KeyType, char[] password) {
-    try {
-      return new SSLSocketFactoryFactory(dir + "/" + caName, dir + "/" + certName, KeyType, password);
-    } catch (GeneralSecurityException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
+      if (mFactoryFactory == null) {
+          try {
+              mFactoryFactory = new SSLSocketFactoryFactory(dir + "/" + caName, dir + "/" + certName, KeyType, password);
+          } catch (GeneralSecurityException | IOException e) {
+              e.printStackTrace();
+          }
     }
-    return null;
+      return mFactoryFactory;
   }
 
   public static boolean isCACertificateInstalled(String dir, String caName, String type, String password) throws KeyStoreException {
@@ -44,13 +52,7 @@ public class CertificateManager {
         FileInputStream fileCert = new FileInputStream(fileCA);
         keyStoreCA.load(fileCert, password.toCharArray());
         fileCert.close();
-      } catch (FileNotFoundException e) {
-        e.printStackTrace();
-      } catch (java.security.cert.CertificateException e) {
-        e.printStackTrace();
-      } catch (NoSuchAlgorithmException e) {
-        e.printStackTrace();
-      } catch (IOException e) {
+      } catch (NoSuchAlgorithmException | IOException | java.security.cert.CertificateException e) {
         e.printStackTrace();
       }
       Enumeration ex = keyStoreCA.aliases();
@@ -67,8 +69,7 @@ public class CertificateManager {
       }
 
       try {
-        if(keyStoreCA.getKey(caAliasValue, password.toCharArray()) == null) return false;
-        else return true;
+          return keyStoreCA.getKey(caAliasValue, password.toCharArray()) != null;
       } catch (NoSuchAlgorithmException e) {
         e.printStackTrace();
       } catch (UnrecoverableKeyException e) {
