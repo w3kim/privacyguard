@@ -4,9 +4,7 @@ import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
 
-import com.PrivacyGuard.UI.BuildConfig;
-import com.PrivacyGuard.UI.MainActivity;
-import com.PrivacyGuard.Utilities.Logger;
+import com.PrivacyGuard.Application.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
