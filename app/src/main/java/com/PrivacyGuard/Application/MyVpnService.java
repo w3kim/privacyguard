@@ -29,6 +29,11 @@ import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 import android.support.v4.app.NotificationCompat;
 
+import com.PrivacyGuard.Application.Activities.DetailsActivity;
+import com.PrivacyGuard.Application.Activities.R;
+import com.PrivacyGuard.Application.Database.DataLeak;
+import com.PrivacyGuard.Application.Database.DatabaseHandler;
+import com.PrivacyGuard.Application.Database.LocationLeak;
 import com.PrivacyGuard.Application.Network.Forwader.ForwarderPools;
 import com.PrivacyGuard.Application.Network.LocalServer;
 import com.PrivacyGuard.Application.Network.Resolver.MyClientResolver;
@@ -39,12 +44,7 @@ import com.PrivacyGuard.Plugin.ContactDetection;
 import com.PrivacyGuard.Plugin.IPlugin;
 import com.PrivacyGuard.Plugin.LocationDetection;
 import com.PrivacyGuard.Plugin.PhoneStateDetection;
-import com.PrivacyGuard.Application.Activities.DetailsActivity;
-import com.PrivacyGuard.Application.Activities.R;
 import com.PrivacyGuard.Utilities.CertificateManager;
-import com.PrivacyGuard.Application.Database.DataLeak;
-import com.PrivacyGuard.Application.Database.DatabaseHandler;
-import com.PrivacyGuard.Application.Database.LocationLeak;
 import com.PrivacyGuard.Utilities.StringUtil;
 
 import org.sandrop.webscarab.plugin.proxy.SSLSocketFactoryFactory;
@@ -65,9 +65,6 @@ public class MyVpnService extends VpnService implements Runnable {
     public static final String CertName = "PrivacyGuard_Cert";
     public static final String KeyType = "PKCS12";
     public static final String Password = "";
-    public final static String EXTRA_DATA = "com.y59song.UI.PrivacyGuard.DATA";
-    public final static String EXTRA_APP = "com.y59song.UI.PrivacyGuard.APP";
-    public final static String EXTRA_SIZE = "com.y59song.UI.PrivacyGuard.SIZE";
     private static final String TAG = MyVpnService.class.getSimpleName();
     private static final boolean DEBUG = true;
     private static int mId = 0;
@@ -87,7 +84,12 @@ public class MyVpnService extends VpnService implements Runnable {
     private LocalServer localServer;
 
     // Plugin
-    private Class pluginClass[] = {LocationDetection.class, PhoneStateDetection.class, ContactDetection.class};
+    private Class pluginClass[] = {
+            LocationDetection.class,
+            PhoneStateDetection.class,
+            ContactDetection.class
+    };
+    private ArrayList<IPlugin> plugins;
 
     // Other
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
@@ -274,10 +276,10 @@ public class MyVpnService extends VpnService implements Runnable {
         //TODO: Currently initiates a new activity instance each time, should recycle if already open
         // Creates an explicit intent for an Activity in your app
         Intent resultIntent = new Intent(this, DetailsActivity.class);
-        resultIntent.putExtra(EXTRA_APP, appName);
-        resultIntent.putExtra(EXTRA_SIZE, String.valueOf(leakList.size()));
+        resultIntent.putExtra(PrivacyGuard.EXTRA_APP, appName);
+        resultIntent.putExtra(PrivacyGuard.EXTRA_SIZE, String.valueOf(leakList.size()));
         for (int i = 0; i < leakList.size(); i++) {
-            resultIntent.putExtra(EXTRA_DATA + i, leakList.get(i).getLocation()); // to pass values between activities
+            resultIntent.putExtra(PrivacyGuard.EXTRA_DATA + i, leakList.get(i).getLocation()); // to pass values between activities
         }
 
         // The stack builder object will contain an artificial back stack for the

@@ -32,12 +32,13 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 
-import com.PrivacyGuard.Application.MyVpnService;
-import com.PrivacyGuard.Utilities.CertificateManager;
 import com.PrivacyGuard.Application.Database.DataLeak;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
 import com.PrivacyGuard.Application.Database.LocationLeak;
 import com.PrivacyGuard.Application.Logger;
+import com.PrivacyGuard.Application.MyVpnService;
+import com.PrivacyGuard.Application.PrivacyGuard;
+import com.PrivacyGuard.Utilities.CertificateManager;
 
 import java.security.KeyStoreException;
 import java.util.ArrayList;
@@ -53,16 +54,12 @@ public class MainActivity extends Activity {
     public static final String THIRD_COLUMN="Third";
     public static final String FOURTH_COLUMN="Fourth";
     public static final String FIFTH_COLUMN="Fifth";
-    public final static String EXTRA_DATA = "com.y59song.UI.PrivacyGuard.DATA";
-    public final static String EXTRA_APP = "com.y59song.UI.PrivacyGuard.APP";
-    public final static String EXTRA_SIZE = "com.y59song.UI.PrivacyGuard.SIZE";
-    public final static String EXTRA_DATE_FORMAT = "com.y59song.UI.PrivacyGuard.DATE";
+    public static final boolean debug = false;
     private static String TAG = "UI";
     private Intent intent;
     private ArrayList<HashMap<String, String>> list;
     private Button buttonConnect;
     private ListView listLeak;
-
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -184,12 +181,12 @@ public class MainActivity extends Activity {
                     String appName = list.get(position).get(FIRST_COLUMN);
                     List<LocationLeak> leakList = db.getLocationLeaks(appName);
 
-                    intent.putExtra(EXTRA_APP, appName);
-                    intent.putExtra(EXTRA_SIZE, String.valueOf(leakList.size()));
+                    intent.putExtra(PrivacyGuard.EXTRA_APP, appName);
+                    intent.putExtra(PrivacyGuard.EXTRA_SIZE, String.valueOf(leakList.size()));
 
                     for (int i = 0; i < leakList.size(); i++) {
-                        intent.putExtra(EXTRA_DATA + i, leakList.get(i).getLocation()); // to pass values between activities
-                        intent.putExtra(EXTRA_DATE_FORMAT + i, leakList.get(i).getTimeStamp());
+                        intent.putExtra(PrivacyGuard.EXTRA_DATA + i, leakList.get(i).getLocation()); // to pass values between activities
+                        intent.putExtra(PrivacyGuard.EXTRA_DATE_FORMAT + i, leakList.get(i).getTimeStamp());
                     }
                     startActivity(intent);
                 }
@@ -208,11 +205,10 @@ public class MainActivity extends Activity {
         try {
             if(CertificateManager.isCACertificateInstalled(Dir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password))
                 return;
-            else CertificateManager.generateCACertificate(Dir, MyVpnService.CAName, MyVpnService.CertName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
         } catch (KeyStoreException e) {
             e.printStackTrace();
         }
-
+        CertificateManager.generateCACertificate(Dir, MyVpnService.CAName, MyVpnService.CertName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
         Intent intent = KeyChain.createInstallIntent();
         try {
             intent.putExtra(KeyChain.EXTRA_CERTIFICATE, CertificateManager.getCACertificate(Dir, MyVpnService.CAName).getEncoded());
@@ -222,8 +218,6 @@ public class MainActivity extends Activity {
         intent.putExtra(KeyChain.EXTRA_NAME, MyVpnService.CAName);
         startActivity(intent);
     }
-
-
 
     @Override
     // Gets called immediately before onResume() when activity is re-starting
@@ -258,6 +252,5 @@ public class MainActivity extends Activity {
         } else {
             onActivityResult(0, RESULT_OK, null);
         }
-
     }
 }

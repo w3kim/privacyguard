@@ -19,13 +19,13 @@
 
 package com.PrivacyGuard.Application.Network.Forwader;
 
+import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
 import com.PrivacyGuard.Application.Network.IP.IPHeader;
 import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
 import com.PrivacyGuard.Application.Network.UDP.UDPDatagram;
 import com.PrivacyGuard.Application.Network.UDP.UDPHeader;
-import com.PrivacyGuard.Application.Logger;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -39,18 +39,17 @@ import java.util.Arrays;
  * Created by frank on 2014-03-29.
  */
 public class UDPForwarder extends AbsForwarder implements ICommunication {
-
+  private final int LIMIT = 32767;
   private InetAddress dstAddress;
   private int dstPort;
   private DatagramSocket socket;
   private ByteBuffer packet;
   private DatagramPacket response;
-  private final int Limit = 32767;
 
   public UDPForwarder(MyVpnService vpnService) {
     super(vpnService);
-    packet = ByteBuffer.allocate(Limit);
-    response = new DatagramPacket(packet.array(), Limit);
+    packet = ByteBuffer.allocate(LIMIT);
+    response = new DatagramPacket(packet.array(), LIMIT);
   }
 
   @Override

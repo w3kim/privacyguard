@@ -19,36 +19,44 @@
 
 package com.PrivacyGuard.Application.Network.Forwader;
 
-import android.util.Log;
-import com.PrivacyGuard.Application.Network.Forwader.Receiver.TCPForwarderWorker;
+import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
 import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
+import com.PrivacyGuard.Application.Network.Receiver.TCPForwarderWorker;
 import com.PrivacyGuard.Application.Network.TCP.TCPDatagram;
 import com.PrivacyGuard.Application.Network.TCP.TCPHeader;
 import com.PrivacyGuard.Application.Network.TCPConnectionInfo;
-import com.PrivacyGuard.Application.Logger;
 
 import java.net.InetAddress;
 /**
  * Created by frank on 2014-03-27.
  */
 public class TCPForwarder extends AbsForwarder implements ICommunication {
-
   private final String TAG = "TCPForwarder";
-  private final boolean DEBUG = false;
+  protected Status status;
   private TCPForwarderWorker receiver;
   private TCPConnectionInfo conn_info;
-
-  public enum Status {
-    DATA, LISTEN, SYN_ACK_SENT, HALF_CLOSE_BY_CLIENT, HALF_CLOSE_BY_SERVER, CLOSED
-  }
-
-  protected Status status;
 
   public TCPForwarder(MyVpnService vpnService) {
     super(vpnService);
     status = Status.LISTEN;
+  }
+
+  private boolean handle_LISTEN(IPDatagram ipDatagram, byte flag, int len) {
+    if (flag != TCPHeader.SYN) {
+      close(true);
+      return false;
+    }
+    Logger.d(TAG, "Listen " + ipDatagram.payLoad().header().getSrcPort() + " : " + ipDatagram.payLoad().header().getDstPort());
+    conn_info.reset(ipDatagram);
+    conn_info.setup(this);
+    if (!receiver.isValid()) return false;
+    conn_info.increaseSeq(
+            forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null))
+    );
+    status = Status.SYN_ACK_SENT;
+    return true;
   }
 
   /*
@@ -59,22 +67,6 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
    * step 5 : update the datagram's checksum
    * step 6 : combine the tcp datagram and the ip datagram, update the ip header
    */
-
-  private boolean handle_LISTEN(IPDatagram ipDatagram, byte flag, int len) {
-    if(flag != TCPHeader.SYN) {
-      close(true);
-      return false;
-    }
-    Logger.d(TAG, "Listen " + ipDatagram.payLoad().header().getSrcPort() + " : " + ipDatagram.payLoad().header().getDstPort());
-    conn_info.reset(ipDatagram);
-    conn_info.setup(this);
-    if(!receiver.isValid()) return false;
-    conn_info.increaseSeq(
-      forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null))
-    );
-    status = Status.SYN_ACK_SENT;
-    return true;
-  }
 
   private boolean handle_SYN_ACK_SENT(byte flag) {
     if(flag != TCPHeader.ACK) {
@@ -87,7 +79,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
   }
 
   private boolean handle_DATA(IPDatagram ipDatagram, byte flag, int len, int rlen) {
-    assert((flag & TCPHeader.ACK) != 0);
+    if (((flag & TCPHeader.ACK) == 0)) throw new AssertionError();
     if(rlen > 0) { // send data
       send(ipDatagram.payLoad());
       conn_info.increaseSeq(
@@ -110,7 +102,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
   }
 
   private boolean handle_HALF_CLOSE_BY_CLIENT(byte flag) {
-    assert(flag == TCPHeader.ACK);
+    if ((flag != TCPHeader.ACK)) throw new AssertionError();
     status = Status.CLOSED;
     Logger.d(TAG, "HALF_CLOSE_BY_CLIENT close");
     close(false);
@@ -139,20 +131,26 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
       rlen = ipDatagram.payLoad().dataLength();
       if(conn_info == null) conn_info = new TCPConnectionInfo(ipDatagram);
     } else return;
+    //MyLogger.debugInfo(TAG, ((TCPDatagram)ipDatagram.payLoad()).debugInfo());
     switch(status) {
       case LISTEN:
+        Logger.d(TAG, "LISTEN");
         if(!handle_LISTEN(ipDatagram, flag, len)) return;
         else break;
       case SYN_ACK_SENT:
+        Logger.d(TAG, "SYN_ACK_SENT");
         if(!handle_SYN_ACK_SENT(flag)) return;
         else break;
       case DATA:
+        Logger.d(TAG, "DATA");
         if(!handle_DATA(ipDatagram, flag, len, rlen)) return;
         else break;
       case HALF_CLOSE_BY_CLIENT:
+        Logger.d(TAG, "HALF_CLOSE_BY_CLIENT");
         if(!handle_HALF_CLOSE_BY_CLIENT(flag)) return;
         else break;
       case HALF_CLOSE_BY_SERVER:
+        Logger.d(TAG, "HALF_CLOSE_BY_SERVER");
         if(!handle_HALF_CLOSE_BY_SERVER(flag, len)) return;
         else break;
       case CLOSED:
@@ -169,7 +167,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
   public boolean setup(InetAddress srcAddress, int src_port, InetAddress dstAddress, int dst_port) {
     vpnService.getClientAppResolver().setLocalPortToRemoteMapping(src_port, dstAddress.getHostAddress(), dst_port);
     receiver = new TCPForwarderWorker(srcAddress, src_port, dstAddress, dst_port, this);
-    if(!receiver.isValid()) {
+    if (!receiver.isValid()) {
       return false;
     } else receiver.start();
     return true;
@@ -177,7 +175,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
 
   @Override
   public void open() {
-    if(!closed) return;
+    if (!closed) return;
     super.open();
     status = Status.LISTEN;
   }
@@ -199,9 +197,9 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
 
   @Override
   public synchronized void forwardResponse(byte[] response) {
-    if(conn_info == null) return;
+    if (conn_info == null) return;
     conn_info.increaseSeq(
-      forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.DATA), response))
+            forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.DATA), response))
     );
   }
 
@@ -222,15 +220,12 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     closed = true;
     if(sendRST) forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.RST), null));
     status = Status.CLOSED;
-    try {
-      if(receiver != null) {
-        receiver.interrupt();
-        receiver.join();
-      }
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
+    if (receiver != null) receiver.interrupt();
     vpnService.getForwarderPools().release(this);
-    if(DEBUG) Log.d(TAG, "Released");
+    Logger.d(TAG, "Released");
+  }
+
+  public enum Status {
+    DATA, LISTEN, SYN_ACK_SENT, HALF_CLOSE_BY_CLIENT, HALF_CLOSE_BY_SERVER, CLOSED
   }
 }

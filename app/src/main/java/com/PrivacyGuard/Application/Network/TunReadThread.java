@@ -28,80 +28,72 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by y59song on 06/06/14.
  */
 public class TunReadThread extends Thread {
-  private final FileInputStream localIn;
-  private final FileChannel localInChannel;
-  private final int limit = 2048;
-  private final ArrayDeque<IPDatagram> readQueue = new ArrayDeque<IPDatagram>();
-  private final ForwarderPools forwarderPools;
-  private final Dispatcher dispatcher;
+    private final FileInputStream localIn;
+    private final FileChannel localInChannel;
+    private final int LIMIT = 2048;
+    private final ForwarderPools forwarderPools;
+    private final Dispatcher dispatcher;
+    private ConcurrentLinkedQueue<IPDatagram> readQueue = new ConcurrentLinkedQueue<IPDatagram>();
 
-  public TunReadThread(FileDescriptor fd, MyVpnService vpnService) {
-    localIn = new FileInputStream(fd);
-    localInChannel = localIn.getChannel();
-    this.forwarderPools = vpnService.getForwarderPools();
-    dispatcher = new Dispatcher();
-  }
-
-  public void run() {
-    try {
-      ByteBuffer packet = ByteBuffer.allocate(limit);
-      IPDatagram ip;
-      dispatcher.start();
-      while (!isInterrupted()) {
-        packet.clear();
-        if (localInChannel.read(packet) > 0) {
-          packet.flip();
-          if ((ip = IPDatagram.create(packet)) != null) {
-            synchronized (readQueue) {
-              readQueue.addLast(ip);
-              readQueue.notify();
-            }
-          }
-        } else {
-          // length = 0 is possible, -1 means reach the end of the stream
-          Thread.sleep(100);
-        }
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (InterruptedException e) {
-      e.printStackTrace();
+    public TunReadThread(FileDescriptor fd, MyVpnService vpnService) {
+        localIn = new FileInputStream(fd);
+        localInChannel = localIn.getChannel();
+        this.forwarderPools = vpnService.getForwarderPools();
+        dispatcher = new Dispatcher();
     }
-    clean();
-  }
 
-  private class Dispatcher extends Thread {
     public void run() {
-      IPDatagram temp;
-      while(!isInterrupted()) {
-        synchronized (readQueue) {
-          if ((temp = readQueue.pollFirst()) == null) {
-            try {
-              readQueue.wait();
-            } catch (InterruptedException e) {
-              e.printStackTrace();
+        try {
+            ByteBuffer packet = ByteBuffer.allocate(LIMIT);
+            IPDatagram ip;
+            dispatcher.start();
+            while (!isInterrupted()) {
+                packet.clear();
+                if (localInChannel.read(packet) > 0) {
+                    packet.flip();
+                    if ((ip = IPDatagram.create(packet)) != null) {
+                        readQueue.offer(ip);
+                    }
+                } else {
+                    // length = 0 is possible, -1 means reach the end of the stream
+                    Thread.sleep(1);
+                }
             }
-            continue;
-          }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
         }
-        int port = temp.payLoad().getSrcPort();
-        forwarderPools.get(port, temp.header().protocol()).forwardRequest(temp);
-      }
+        clean();
     }
-  }
 
-  private void clean() {
-    dispatcher.interrupt();
-    try {
-      localIn.close();
-    } catch (IOException e) {
-      e.printStackTrace();
+    private void clean() {
+        dispatcher.interrupt();
+        try {
+            localIn.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-  }
+
+    private class Dispatcher extends Thread {
+        public void run() {
+            IPDatagram temp;
+            while (!isInterrupted()) {
+                while ((temp = readQueue.poll()) == null) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                int port = temp.payLoad().getSrcPort();
+                forwarderPools.get(port, temp.header().protocol()).forwardRequest(temp);
+            }
+        }
+    }
 }

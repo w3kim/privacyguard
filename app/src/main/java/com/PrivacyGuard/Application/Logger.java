@@ -12,9 +12,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Created by frank on 9/29/14.
@@ -66,7 +67,7 @@ public class Logger {
      * @param msg
      * @param locations
      */
-    public static void logTraffic(String tag, String msg, ArrayList<Location> locations) {
+    public static void logTraffic(String tag, String msg, HashMap<String, Location> locations) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 
@@ -79,8 +80,8 @@ public class Logger {
                 out.println("Time : " + df.format(new Date()));
                 out.println(" [ " + tag + " ] ");
                 out.println(msg);
-                for (Location loc : locations) {
-                    out.println(loc.getProvider() + " : lon = " + loc.getLongitude() + ", lat = " + loc.getLatitude());
+                for (Map.Entry<String, Location> locationEntry : locations.entrySet()) {
+                    out.println(locationEntry.getKey() + " : lon = " + locationEntry.getValue().getLongitude() + ", lat = " + locationEntry.getValue().getLatitude());
                 }
                 out.println("");
                 out.close();

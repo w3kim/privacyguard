@@ -24,57 +24,49 @@ import com.PrivacyGuard.Application.MyVpnService;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by y59song on 02/06/14.
  */
 public class TunWriteThread extends Thread {
-  private final FileOutputStream localOut;
-  private final ArrayDeque<byte[]> writeQueue = new ArrayDeque<byte[]>();
+    private final FileOutputStream localOut;
+    private final ConcurrentLinkedQueue<byte[]> writeQueue = new ConcurrentLinkedQueue<byte[]>();
 
-  public TunWriteThread(FileDescriptor fd, MyVpnService vpnService) {
-    localOut = new FileOutputStream(fd);
-  }
+    public TunWriteThread(FileDescriptor fd, MyVpnService vpnService) {
+        localOut = new FileOutputStream(fd);
+    }
 
-  public void run() {
-    byte[] temp;
-    while(!isInterrupted()) {
-      synchronized(writeQueue) {
-        if ((temp = writeQueue.pollFirst()) == null) {
-          try {
-            writeQueue.wait();
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          }
-          continue;
+    public void run() {
+        byte[] temp;
+        while (!isInterrupted()) {
+
+            while ((temp = writeQueue.poll()) == null) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            try {
+                localOut.write(temp);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-      }
-      try {
-        localOut.write(temp);
-        localOut.flush();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-    clean();
-  }
-
-  public void write(byte[] data) {
-    synchronized(writeQueue) {
-      writeQueue.addLast(data);
-      if(writeQueue.size() == 1)
-        writeQueue.notify();
+        clean();
     }
 
-  }
-
-  private void clean() {
-    try {
-      localOut.close();
-    } catch (IOException e) {
-      e.printStackTrace();
+    public void write(byte[] data) {
+        writeQueue.offer(data);
     }
-    writeQueue.clear();
-  }
+
+    private void clean() {
+        try {
+            localOut.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        writeQueue.clear();
+    }
 }

@@ -9,6 +9,7 @@ import android.widget.ToggleButton;
 
 import com.PrivacyGuard.Application.Database.DataLeak;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
+import com.PrivacyGuard.Application.PrivacyGuard;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -17,7 +18,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.List;
 
-public class DetailsActivity extends Activity{
+public class DetailsActivity extends Activity {
 
     private static String TAG = "UI";
     GoogleMap googleMap;
@@ -31,7 +32,7 @@ public class DetailsActivity extends Activity{
         // Get the message from the intent
         Intent intent = getIntent();
 
-        final String appName = intent.getStringExtra(MainActivity.EXTRA_APP);
+        final String appName = intent.getStringExtra(PrivacyGuard.EXTRA_APP);
         name = appName;
 
         ToggleButton toggle = (ToggleButton) findViewById(R.id.toggleButton);
@@ -71,26 +72,27 @@ public class DetailsActivity extends Activity{
             }
         });
 
-        int size = Integer.parseInt(intent.getStringExtra(MainActivity.EXTRA_SIZE));
+        int size = Integer.parseInt(intent.getStringExtra(PrivacyGuard.EXTRA_SIZE));
 
         String message = "";
 
         /*if (!PrivacyGuard.checkLocationPermission()) {
             Logger.w(TAG,"No Location Access");
             //TODO: ask for permission http://developer.android.com/training/permissions/requesting.html#perm-check
-        }else*/{
-            googleMap = ((MapFragment)getFragmentManager().findFragmentById(R.id.map)).getMap();
+        }else*/
+        {
+            googleMap = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
             googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
             googleMap.setMyLocationEnabled(true);
 
             // Drawing marker on the map
             for (int i = 0; i < size; i++) {
-                message = intent.getStringExtra(MainActivity.EXTRA_DATA + i);
+                message = intent.getStringExtra(PrivacyGuard.EXTRA_DATA + i);
                 String[] point = message.split(";");
-                drawMarker(new LatLng(Double.parseDouble(point[0]), Double.parseDouble(point[1])), intent.getStringExtra(MainActivity.EXTRA_DATE_FORMAT + i));
+                drawMarker(new LatLng(Double.parseDouble(point[0]), Double.parseDouble(point[1])), intent.getStringExtra(PrivacyGuard.EXTRA_DATE_FORMAT + i));
 
                 // Moving CameraPosition to last point position
-                if (i == size-1){
+                if (i == size - 1) {
                     googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(Double.parseDouble(point[0]), Double.parseDouble(point[1]))));
 
                     // Setting the zoom level in the map on last point
@@ -116,7 +118,7 @@ public class DetailsActivity extends Activity{
         }
     }
 
-    private void drawMarker(LatLng point, String date){
+    private void drawMarker(LatLng point, String date) {
         // Creating an instance of MarkerOptions
         MarkerOptions markerOptions = new MarkerOptions();
 
