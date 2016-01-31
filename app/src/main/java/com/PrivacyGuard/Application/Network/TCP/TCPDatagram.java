@@ -1,6 +1,6 @@
 package com.PrivacyGuard.Application.Network.TCP;
 
-import android.util.Log;
+import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
 
 import java.util.Arrays;
@@ -12,29 +12,34 @@ public class TCPDatagram extends IPPayLoad {
   private static final String TAG = "TCPDatagram";
   private static final boolean DEBUG = false;
 
-  public static TCPDatagram create(byte[] data) {
-    TCPHeader header = new TCPHeader(data);
-    return new TCPDatagram(header, Arrays.copyOfRange(data, header.offset(), data.length));
-  }
-
   public TCPDatagram(TCPHeader header, byte[] data) {
     this.header = header;
     this.data = data;
-    if(DEBUG) debugInfo();
+    debugInfo();
   }
 
   public TCPDatagram(TCPHeader header, byte[] data, int start, int end) {
     this.header = header;
     this.data = Arrays.copyOfRange(data, start, end);
-    if(DEBUG) debugInfo();
+    debugInfo();
+  }
+
+  public static TCPDatagram create(byte[] data) {
+    TCPHeader header = new TCPHeader(data);
+    return new TCPDatagram(header, Arrays.copyOfRange(data, header.offset(), data.length));
+  }
+
+  public static TCPDatagram create(byte[] data, int offset, int len) {
+    TCPHeader header = new TCPHeader(data, offset);
+    return new TCPDatagram(header, Arrays.copyOfRange(data, header.offset() + offset, len));
   }
 
   public void debugInfo() {
     //if(header.getDstPort() == 80 || header.getSrcPort() == 80)
-      Log.d(TAG, "Flag : " + (((TCPHeader)header).getFlag() & 0xFF) + " SrcPort : "
-        + header.getSrcPort() + " DstPort : " + header.getDstPort() + " Seq : " + ((TCPHeader)header).getSeq_num()
-        + " Ack : " + ((TCPHeader)header).getAck_num()
-        + " Data Length : " + dataLength());
+    Logger.d(TAG, "Flag : " + (((TCPHeader) header).getFlag() & 0xFF) + " SrcPort : "
+            + header.getSrcPort() + " DstPort : " + header.getDstPort() + " Seq : " + ((TCPHeader) header).getSeq_num()
+            + " Ack : " + ((TCPHeader) header).getAck_num()
+            + " Data Length : " + dataLength());
   }
 
   @Override

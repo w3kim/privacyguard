@@ -2,10 +2,10 @@ package com.PrivacyGuard.Application.Network;
 
 import android.util.Log;
 
+import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.Forwader.MySocketForwarder;
 import com.PrivacyGuard.Application.Network.SSL.SSLSocketBuilder;
-import com.PrivacyGuard.Application.Logger;
 
 import org.sandrop.webscarab.model.ConnectionDescriptor;
 import org.sandrop.webscarab.plugin.proxy.SiteData;
@@ -26,7 +26,6 @@ import javax.net.ssl.SSLSocketFactory;
  * Created by frank on 2014-06-03.
  */
 public class LocalServer extends Thread {
-
   public static final int SSLPort = 443;
   private static final boolean DEBUG = true;
   private static final String TAG = LocalServer.class.getSimpleName();

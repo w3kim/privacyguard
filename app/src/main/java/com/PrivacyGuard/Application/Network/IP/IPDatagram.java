@@ -13,32 +13,32 @@ import java.util.Arrays;
 
 public class IPDatagram {
   public final static String TAG = "IPDatagram";
+  public static final int TCP = 6, UDP = 17;
   IPHeader header;
   IPPayLoad data;
-
-  public static final int TCP = 6, UDP = 17;
-  public static IPDatagram create(ByteBuffer packet) {
-    IPHeader header = IPHeader.create(packet.array());
-    IPPayLoad payLoad;
-    if(header.protocol() == TCP) {
-      payLoad = TCPDatagram.create(Arrays.copyOfRange(packet.array(), header.headerLength(), packet.limit()));
-    } else if(header.protocol() == UDP) {
-      payLoad = UDPDatagram.create(Arrays.copyOfRange(packet.array(), header.headerLength(), packet.limit()));
-    }
-    else return null;
-    return new IPDatagram(header, payLoad);
-  }
 
   public IPDatagram(IPHeader header, IPPayLoad data) {
     this.header = header;
     this.data = data;
     int totalLength = header.headerLength() + data.length();
-    if(this.header.length() != totalLength) {
+    if (this.header.length() != totalLength) {
       this.header.setLength(totalLength);
-      this.header.setCheckSum(new byte[] {0, 0});
+      this.header.setCheckSum(new byte[]{0, 0});
       byte[] toComputeCheckSum = this.header.toByteArray();
       this.header.setCheckSum(ByteOperations.computeCheckSum(toComputeCheckSum));
     }
+  }
+
+  public static IPDatagram create(ByteBuffer packet) {
+    IPHeader header = IPHeader.create(packet.array());
+    IPPayLoad payLoad;
+    if(header.protocol() == TCP) {
+      payLoad = TCPDatagram.create(packet.array(), header.headerLength(), packet.limit());
+    } else if(header.protocol() == UDP) {
+      payLoad = UDPDatagram.create(Arrays.copyOfRange(packet.array(), header.headerLength(), packet.limit()));
+    }
+    else return null;
+    return new IPDatagram(header, payLoad);
   }
 
   public IPHeader header() {

@@ -10,8 +10,6 @@ import java.util.Arrays;
  * Created by frank on 2014-03-26.
  */
 public class TCPHeader extends TransportHeader {
-  private int offset, seq_num, ack_num;
-  private static final String TAG = "TCPHeader";
   public static final byte FIN = 0x01;
   public static final byte ACK = 0x10;
   public static final byte FINACK = (byte)(FIN | ACK);
@@ -20,6 +18,8 @@ public class TCPHeader extends TransportHeader {
   public static final byte PSH = 0x08;
   public static final byte DATA = (byte)(PSH | ACK);
   public static final byte RST = 0x04;
+  private static final String TAG = "TCPHeader";
+  private int offset, seq_num, ack_num;
 
   public TCPHeader(byte[] data) {
     super(data);
@@ -30,6 +30,17 @@ public class TCPHeader extends TransportHeader {
     checkSum_pos = 16;
     checkSum_size = 2;
     this.data = Arrays.copyOfRange(data, 0, 20);
+  }
+
+  public TCPHeader(byte[] data, int start) {
+    super(data, start);
+    offset = (data[12 + start] & 0xF0) / 4;
+    data[12 + start] = (byte) ((data[12 + start] & 0x0F) + 0x50);
+    seq_num = ByteOperations.byteArrayToInteger(data, 4 + start, 8);
+    ack_num = ByteOperations.byteArrayToInteger(data, 8 + start, 12);
+    checkSum_pos = 16;
+    checkSum_size = 2;
+    this.data = Arrays.copyOfRange(data, start, 20 + start);
   }
 
   public static TCPHeader createHeader(TCPHeader origin, int size, byte flag) {
@@ -78,9 +89,9 @@ public class TCPHeader extends TransportHeader {
     return new TCPHeader(reverseData);
   }
 
-  public void setAck_num(int ack) {
-    byte[] bytes = ByteBuffer.allocate(4).putInt(ack).array();
-    System.arraycopy(bytes, 0, data, 8, 4);
+  public int getSeq_num() {
+    seq_num = ByteOperations.byteArrayToInteger(data, 4, 8);
+    return seq_num;
   }
 
   public void setSeq_num(int seq) {
@@ -88,21 +99,21 @@ public class TCPHeader extends TransportHeader {
     System.arraycopy(bytes, 0, data, 4, 4);
   }
 
-  public void setFlag(byte flag) {
-    data[13] = flag;
-  }
-
-  public int getSeq_num() {
-    seq_num = ByteOperations.byteArrayToInteger(data, 4, 8);
-    return seq_num;
-  }
-
   public int getAck_num() {
     ack_num = ByteOperations.byteArrayToInteger(data, 8, 12);
     return ack_num;
   }
 
+  public void setAck_num(int ack) {
+    byte[] bytes = ByteBuffer.allocate(4).putInt(ack).array();
+    System.arraycopy(bytes, 0, data, 8, 4);
+  }
+
   public byte getFlag() {
     return data[13];
+  }
+
+  public void setFlag(byte flag) {
+    data[13] = flag;
   }
 }
