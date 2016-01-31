@@ -61,7 +61,7 @@ import java.util.List;
 /**
  * Created by frank on 2014-03-26.
  */
-public class MyVpnService extends VpnService implements Runnable, Notifications {
+public class MyVpnService extends VpnService implements Runnable {
     public static final String CAName = "PrivacyGuard_CA";
     public static final String CertName = "PrivacyGuard_Cert";
     public static final String KeyType = "PKCS12";
@@ -220,7 +220,6 @@ public class MyVpnService extends VpnService implements Runnable, Notifications 
         return msg.equals("Location");
     }
 
-    @Override
     public void notify(String appName, String msg) {
         //update database
         //if has notification, update
@@ -252,7 +251,7 @@ public class MyVpnService extends VpnService implements Runnable, Notifications 
         //Logger.d(TAG, msg);
         // build notification
 
-        String content = appName + " " + msg;
+        String content = msg;
         buildNotification(appName, msg, content, notifyId, db.findGeneralNotificationId(appName), leakList);
         mId++;
     }
@@ -261,16 +260,17 @@ public class MyVpnService extends VpnService implements Runnable, Notifications 
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(this)
                         .setSmallIcon(R.drawable.notify)
-                        .setContentTitle("Privacy Guard")
+                        .setContentTitle(appName)
                         .setContentText(content)
-                        .setTicker(appName + " " + msg);
+                        .setTicker(appName + " " + msg)
+                        .setAutoCancel(true);
 
         Intent ignoreIntent = new Intent(this, ActionReceiver.class);
         ignoreIntent.setAction("Ignore");
         ignoreIntent.putExtra("notificationId", notifyId);
         // use System.currentTimeMillis() to have a unique ID for the pending intent
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), (int) System.currentTimeMillis(), ignoreIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.addAction(R.drawable.ignore, "Ignore this type of leaks from this App", pendingIntent);
+        mBuilder.addAction(R.drawable.ignore, "Ignore this kind of leaks", pendingIntent);
 
         //TODO: Currently initiates a new activity instance each time, should recycle if already open
         // Creates an explicit intent for an Activity in your app
@@ -301,7 +301,6 @@ public class MyVpnService extends VpnService implements Runnable, Notifications 
 
     }
 
-    @Override
     public void updateNotification(String appName, String msg) {
         DatabaseHandler db = new DatabaseHandler(this);
         int notifyId = db.findNotificationId(appName, msg);
@@ -320,7 +319,6 @@ public class MyVpnService extends VpnService implements Runnable, Notifications 
 
     }
 
-    @Override
     public void deleteNotification(int id) {
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);

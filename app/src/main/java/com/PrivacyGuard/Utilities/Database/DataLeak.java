@@ -25,7 +25,7 @@ public class DataLeak {
     public DataLeak(int id, String name, String type, int frequency, String timestamp){
         this._id = id;
         this._appName = name;
-        this._leakType = type;
+        this._leakType = StringUtil.typeFromMsg(type);
         this._frequency = frequency;
         this._timestamp = timestamp;
         this._ignore = 0;
@@ -35,7 +35,7 @@ public class DataLeak {
     public DataLeak(int id, String name, String type){
         this._id = id;
         this._appName = name;
-        this._leakType = type;
+        this._leakType = StringUtil.typeFromMsg(type);
         this._frequency = 0;
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
         this._timestamp = dateFormat.format(new Date());
@@ -78,8 +78,7 @@ public class DataLeak {
 
     // setting leak type
     public void setLeakType(String type){
-        type = StringUtil.typeFromMsg(type);
-        this._leakType = type;
+        this._leakType = StringUtil.typeFromMsg(type);
     }
 
     // getting leak frequency/counter

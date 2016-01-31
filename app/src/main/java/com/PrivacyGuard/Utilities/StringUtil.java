@@ -1,5 +1,12 @@
 package com.PrivacyGuard.Utilities;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Vector;
+
 /**
  * Created by justinhu on 16-01-19.
  */
@@ -9,21 +16,15 @@ public class StringUtil {
 
     public static String typeFromMsg(String msg) {
         msg = msg.replace("is leaking", "");
-        int endIndex = msg.lastIndexOf(":");
-        if (endIndex == -1) {
-            return EmptyString;
-        }
-        msg = msg.substring(0, endIndex - 1);
-        msg = msg.trim();
-        return msg;
+        return msg.trim();
     }
 
     public static String locationFromMsg(String msg) {
         msg = msg.replace("is leaking", "");
         int endIndex = msg.lastIndexOf(":");
-        if (endIndex == -1) {
-            return EmptyString;
+        if (endIndex > 0) {
+            msg = msg.substring(0, endIndex-1);
         }
-        return msg.substring(endIndex + 1);
+        return msg.trim();
     }
 }

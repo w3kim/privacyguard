@@ -21,19 +21,27 @@
               android:layout_height="wrap_content"
               android:orientation="vertical"
               android:padding="10dp"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    android:weightSum="1">
 
-    <Button style="@style/item" android:id="@+id/connect_button" android:text="@string/connect"/>
+    <Button
+        style="@style/item"
+        android:id="@+id/connect_button"
+        android:text="@string/connect"
+/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="@string/data_leakage_frequency"
-        android:id="@+id/textView" />
+        android:textStyle="bold"
+        android:id="@+id/textView"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"/>
 
     <ListView android:id="@+id/leaksList"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
+        android:layout_height="390dp" >
     </ListView>
 </LinearLayout>
