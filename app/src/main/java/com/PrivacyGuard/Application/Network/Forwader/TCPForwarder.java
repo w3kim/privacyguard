@@ -79,7 +79,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
   }
 
   private boolean handle_DATA(IPDatagram ipDatagram, byte flag, int len, int rlen) {
-    if (((flag & TCPHeader.ACK) == 0)) throw new AssertionError();
+    //if (((flag & TCPHeader.ACK) == 0)) throw new AssertionError();
     if(rlen > 0) { // send data
       send(ipDatagram.payLoad());
       conn_info.increaseSeq(
@@ -102,7 +102,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
   }
 
   private boolean handle_HALF_CLOSE_BY_CLIENT(byte flag) {
-    if ((flag != TCPHeader.ACK)) throw new AssertionError();
+    //if ((flag != TCPHeader.ACK)) throw new AssertionError();
     status = Status.CLOSED;
     Logger.d(TAG, "HALF_CLOSE_BY_CLIENT close");
     close(false);

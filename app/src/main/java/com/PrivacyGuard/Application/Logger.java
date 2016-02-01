@@ -76,7 +76,7 @@ public class Logger {
             Log.v(tag, locations.toString());
 
             try {
-                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
+                 PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
                 out.println("Time : " + df.format(new Date()));
                 out.println(" [ " + tag + " ] ");
                 out.println(msg);
@@ -142,4 +142,23 @@ public class Logger {
         }
     }
 
+    public static void logTraffic(String tag, String msg) {
+        //log network traffic ONLY in debug build
+        if (BuildConfig.DEBUG) {
+
+            //out put to terminal first
+            Log.v(tag, msg);
+
+            try {
+                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
+                out.println("Time : " + df.format(new Date()));
+                out.println(" [ " + tag + " ] ");
+                out.println(msg);
+                out.println("");
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }

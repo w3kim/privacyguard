@@ -94,7 +94,7 @@ public class MainActivity extends Activity {
             buttonConnect.setEnabled(false);
 
         }else{
-            Logger.w(TAG, "VPN service has stopped");
+            Logger.d(TAG, "VPN service has stopped");
             buttonConnect.setText(R.string.connect);
             buttonConnect.setEnabled(true);
         }

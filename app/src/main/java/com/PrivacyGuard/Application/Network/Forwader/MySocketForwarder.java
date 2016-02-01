@@ -235,6 +235,7 @@ public class MySocketForwarder extends Thread {
 
     public class FilterThread extends Thread {
         public void filter(String msg) {
+
             if (PrivacyGuard.doFilter) {
                 if (EVALUATE) {
                     if (outgoing) {
@@ -261,8 +262,9 @@ public class MySocketForwarder extends Thread {
                                 }
                             }
                             vpnService.notify(appName, ret);
-                            Logger.logTraffic(appName, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret, ((LocationDetection) plugins.get(0)).getLocations());
                         }
+                        if(ret == null) ret = UNKNOWN;
+                        Logger.logTraffic(appName, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret);
                     }
                 }
             }
