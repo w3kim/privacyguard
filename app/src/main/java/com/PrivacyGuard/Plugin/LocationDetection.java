@@ -5,7 +5,10 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Looper;
 import android.util.Log;
+
+import com.PrivacyGuard.Application.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +19,7 @@ import java.util.List;
  */
 public class LocationDetection implements IPlugin, LocationListener {
   private final static String TAG = LocationDetection.class.getSimpleName();
-    private final boolean DEBUG = false;
+    private final boolean DEBUG = true;
   private LocationManager locationManager;
   private ArrayList<Double> latitudes = new ArrayList<Double>(), longitudes = new ArrayList<Double>();
     private HashMap<String, Location> locations = new HashMap<String, Location>();
@@ -27,8 +30,9 @@ public class LocationDetection implements IPlugin, LocationListener {
           Location loc = locationManager.getLastKnownLocation(provider);
           if(loc == null) continue;
           locations.put(provider, loc);
-          locationManager.requestLocationUpdates(provider, 0, 0, this);
+          locationManager.requestLocationUpdates(provider, 0, 0, this, Looper.getMainLooper());
       }
+        Logger.logLastLocations(locations);
         return locations;
   }
 
@@ -37,7 +41,7 @@ public class LocationDetection implements IPlugin, LocationListener {
   public String handleRequest(String requestStr) {
     boolean ret = false;
 
-      if (locations == null) getLocations();
+      if (locations.size() == 0) getLocations();
       for (Location loc : locations.values()) {
           double latD = Math.round(loc.getLatitude() * 10) / 10.0, lonD = Math.round(loc.getLongitude() * 10) / 10.0;
           String latS = "" + latD, lonS = "" + lonD;
@@ -53,7 +57,7 @@ public class LocationDetection implements IPlugin, LocationListener {
     }
 
       String msg = ret ? "is leaking location" : null;
-      if (DEBUG && ret) Log.d(TAG + "request : " + ret + " : " + requestStr.length(), requestStr);
+      if (DEBUG & ret) Log.d(TAG + "request : " + ret + " : " + requestStr.length(), requestStr);
     return msg;
   }
 
