@@ -118,11 +118,11 @@ public class MainActivity extends Activity {
                 ArrayList<Integer> previousCount = groupedList.get(l.getAppName());
                 if (l.getLeakType().replace("is leaking", "").equals("Android ID")){
                     previousCount.set(1,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equals("IMEI")){
+                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("IMEI")) {
                     previousCount.set(0,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equals("Location")){
+                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("Location")) {
                     previousCount.set(2,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equals("phone_number") || l.getLeakType().replace("is leaking", "").equals("email_address")){
+                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("phone_number") || l.getLeakType().replace("is leaking", "").equalsIgnoreCase("email_address")) {
                     previousCount.set(3,l.getFrequency());
                 }
 
@@ -132,13 +132,13 @@ public class MainActivity extends Activity {
                 addCount.add(0);
                 addCount.add(0);
                 addCount.add(0);
-                if (l.getLeakType().replace("is leaking", "").equals("Android ID")){
+                if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("Android ID")) {
                     addCount.set(1,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equals("IMEI")){
+                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("IMEI")) {
                     addCount.set(0,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equals("Location")){
+                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("location")) {
                     addCount.set(2,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equals("phone_number") || l.getLeakType().replace("is leaking", "").equals("email_address")){
+                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("phone_number") || l.getLeakType().replace("is leaking", "").equalsIgnoreCase("email_address")) {
                     addCount.set(3,l.getFrequency());
                 }
 
