@@ -25,6 +25,7 @@ public class Logger {
     private static final SimpleDateFormat df = new SimpleDateFormat(TIME_STAMP_FORMAT, Locale.CANADA);//TODO: auto detect locale
     private static File logFile = new File(getDiskCacheDir(),"Log");
     private static File trafficFile = new File(getDiskFileDir(), "NetworkTraffic");
+    private static File locationFile = new File(getDiskFileDir(), "LastLocations");
 
 
     /**
@@ -67,13 +68,13 @@ public class Logger {
      * @param msg
      * @param locations
      */
-    public static void logTraffic(String tag, String msg, HashMap<String, Location> locations) {
+    public static void logTraffic(String tag, String appName, String msg, HashMap<String, Location> locations) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 
             //out put to terminal first
-            Log.v(tag, msg);
-            Log.v(tag, locations.toString());
+            Log.v(tag, appName + " " + msg);
+            Log.v(tag, appName + " " + locations.toString());
 
             try {
                  PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
@@ -142,18 +143,35 @@ public class Logger {
         }
     }
 
-    public static void logTraffic(String tag, String msg) {
+    public static void logTraffic(String tag, String appName, String msg) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 
             //out put to terminal first
-            Log.v(tag, msg);
+            Log.v(tag, appName + " " + msg);
 
             try {
                 PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
                 out.println("Time : " + df.format(new Date()));
-                out.println(" [ " + tag + " ] ");
+                out.println(" [ " + appName + " ] ");
                 out.println(msg);
+                out.println("");
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void logLastLocations(HashMap<String, Location> locations) {
+        //log network traffic ONLY in debug build
+        if (BuildConfig.DEBUG) {
+
+            try {
+                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(locationFile, true)));
+                for (Map.Entry<String, Location> locationEntry : locations.entrySet()) {
+                    out.println(locationEntry.getKey() + " : lon = " + locationEntry.getValue().getLongitude() + ", lat = " + locationEntry.getValue().getLatitude());
+                }
                 out.println("");
                 out.close();
             } catch (IOException e) {

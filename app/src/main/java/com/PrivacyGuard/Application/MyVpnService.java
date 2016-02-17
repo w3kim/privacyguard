@@ -95,6 +95,7 @@ public class MyVpnService extends VpnService implements Runnable {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
     public static boolean isRunning() {
+        //TODO: this actually doesn't detect if user stopped the service
         ActivityManager activityManager = (ActivityManager) PrivacyGuard.getAppContext().getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningServiceInfo> serviceList = activityManager.getRunningServices(30);
 

@@ -242,29 +242,30 @@ public class MySocketForwarder extends Thread {
                         if (appName == null) {
                             ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
                             if (des != null) appName = des.getNamespace();
-                            Logger.logTraffic(TAG, "IP : " + destIP + "\nRequest : " + msg, ((LocationDetection) plugins.get(0)).getLocations());
+                            Logger.logTraffic(TAG, appName, "IP : " + destIP + "\nRequest : " + msg, ((LocationDetection) plugins.get(0)).getLocations());
                         }
                     }
                 } else {
                     //Log.d("TAG", msg);
                     for (IPlugin plugin : plugins) {
                         String ret = outgoing ? plugin.handleRequest(msg) : plugin.handleResponse(msg);
-                        Logger.d(TAG, "" + (outgoing) + " " + msg);
-                        if (ret != null && outgoing) {
-                            if (appName == null) {
-                                ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
-                                if (des != null) {
-                                    appName = des.getName();
-                                    packageName = des.getNamespace();
-                                } else {
-                                    appName = UNKNOWN;
-                                    packageName = UNKNOWN;
+                        if (outgoing) {
+                            if (ret != null) {
+                                if (appName == null) {
+                                    ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
+                                    if (des != null) {
+                                        appName = des.getName();
+                                        packageName = des.getNamespace();
+                                    } else {
+                                        appName = UNKNOWN;
+                                        packageName = UNKNOWN;
+                                    }
                                 }
+                                vpnService.notify(appName, ret);
                             }
-                            vpnService.notify(appName, ret);
+                            if (ret == null) ret = UNKNOWN;
+                            Logger.logTraffic(TAG, appName + " " + packageName, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret);
                         }
-                        if(ret == null) ret = UNKNOWN;
-                        Logger.logTraffic(appName, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret);
                     }
                 }
             }
