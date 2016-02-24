@@ -33,31 +33,31 @@ import java.net.InetAddress;
  * Created by frank on 2014-03-27.
  */
 public class TCPForwarder extends AbsForwarder implements ICommunication {
-  private final String TAG = "TCPForwarder";
-  protected Status status;
-  private TCPForwarderWorker receiver;
-  private TCPConnectionInfo conn_info;
+    private final String TAG = "TCPForwarder";
+    protected Status status;
+    private TCPForwarderWorker receiver;
+    private TCPConnectionInfo conn_info;
 
-  public TCPForwarder(MyVpnService vpnService) {
-    super(vpnService);
-    status = Status.LISTEN;
-  }
-
-  private boolean handle_LISTEN(IPDatagram ipDatagram, byte flag, int len) {
-    if (flag != TCPHeader.SYN) {
-      close(true);
-      return false;
+    public TCPForwarder(MyVpnService vpnService) {
+        super(vpnService);
+        status = Status.LISTEN;
     }
-    Logger.d(TAG, "Listen " + ipDatagram.payLoad().header().getSrcPort() + " : " + ipDatagram.payLoad().header().getDstPort());
-    conn_info.reset(ipDatagram);
-    conn_info.setup(this);
-    if (!receiver.isValid()) return false;
-    conn_info.increaseSeq(
-            forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null))
-    );
-    status = Status.SYN_ACK_SENT;
-    return true;
-  }
+
+    private boolean handle_LISTEN(IPDatagram ipDatagram, byte flag, int len) {
+        if (flag != TCPHeader.SYN) {
+            close(true);
+            return false;
+        }
+        Logger.d(TAG, "Listen " + ipDatagram.payLoad().header().getSrcPort() + " : " + ipDatagram.payLoad().header().getDstPort());
+        conn_info.reset(ipDatagram);
+        conn_info.setup(this);
+        if (!receiver.isValid()) return false;
+        conn_info.increaseSeq(
+                forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null))
+        );
+        status = Status.SYN_ACK_SENT;
+        return true;
+    }
 
   /*
    * step 1 : reverse the IP header
@@ -68,164 +68,172 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
    * step 6 : combine the tcp datagram and the ip datagram, update the ip header
    */
 
-  private boolean handle_SYN_ACK_SENT(byte flag) {
-    if(flag != TCPHeader.ACK) {
-      close(true);
-      Logger.d(TAG, "SYN_ACK_SENT close");
-      return false;
+    private boolean handle_SYN_ACK_SENT(byte flag) {
+        if(flag != TCPHeader.ACK) {
+            close(true);
+            Logger.d(TAG, "SYN_ACK_SENT close");
+            return false;
+        }
+        status = Status.DATA;
+        return true;
     }
-    status = Status.DATA;
-    return true;
-  }
 
-  private boolean handle_DATA(IPDatagram ipDatagram, byte flag, int len, int rlen) {
-    //if (((flag & TCPHeader.ACK) == 0)) throw new AssertionError();
-    if(rlen > 0) { // send data
-      send(ipDatagram.payLoad());
-      conn_info.increaseSeq(
-        forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
-      );
-    } else if(flag == TCPHeader.FINACK) { // FIN
-      conn_info.increaseSeq(
-        forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
-      );
-      conn_info.increaseSeq(
-        forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null))
-      );
-      Logger.d(TAG, "DATA FIN close");
-      close(false);
-    } else if((flag & TCPHeader.RST) != 0) { // RST
-      close(false);
-      Logger.d(TAG, "DATA RST close");
+    private boolean handle_DATA(IPDatagram ipDatagram, byte flag, int len, int rlen) {
+        if (((flag & TCPHeader.ACK) == 0)) {
+            //TODO: find out why this would happen
+            Logger.e(TAG, "ACK is 0 for Datagram:\nHeader: " + ipDatagram.header().toString() +"\nPayload: "+ipDatagram.payLoad().toString());
+            return false;
+        }
+        if(rlen > 0) { // send data
+            send(ipDatagram.payLoad());
+            conn_info.increaseSeq(
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
+            );
+        } else if(flag == TCPHeader.FINACK) { // FIN
+            conn_info.increaseSeq(
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
+            );
+            conn_info.increaseSeq(
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null))
+            );
+            Logger.d(TAG, "DATA FIN close");
+            close(false);
+        } else if((flag & TCPHeader.RST) != 0) { // RST
+            close(false);
+            Logger.d(TAG, "DATA RST close");
+        }
+        return true;
     }
-    return true;
-  }
 
-  private boolean handle_HALF_CLOSE_BY_CLIENT(byte flag) {
-    //if ((flag != TCPHeader.ACK)) throw new AssertionError();
-    status = Status.CLOSED;
-    Logger.d(TAG, "HALF_CLOSE_BY_CLIENT close");
-    close(false);
-    return true;
-  }
-
-  private boolean handle_HALF_CLOSE_BY_SERVER(byte flag, int len) {
-    if(flag == TCPHeader.FINACK) {
-      conn_info.increaseSeq(
-        forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
-      );
-      status = Status.CLOSED;
-      Logger.d(TAG, "HALF_CLOSE_BY_SERVER close");
-      close(false);
-    } // ELSE ACK for the finack sent by the server
-    return true;
-  }
-
-  protected synchronized void handle_packet (IPDatagram ipDatagram) {
-    if(closed) return;
-    byte flag;
-    int len, rlen;
-    if(ipDatagram != null) {
-      flag = ((TCPHeader)ipDatagram.payLoad().header()).getFlag();
-      len = ipDatagram.payLoad().virtualLength();
-      rlen = ipDatagram.payLoad().dataLength();
-      if(conn_info == null) conn_info = new TCPConnectionInfo(ipDatagram);
-    } else return;
-    //MyLogger.debugInfo(TAG, ((TCPDatagram)ipDatagram.payLoad()).debugInfo());
-    switch(status) {
-      case LISTEN:
-        Logger.d(TAG, "LISTEN");
-        if(!handle_LISTEN(ipDatagram, flag, len)) return;
-        else break;
-      case SYN_ACK_SENT:
-        Logger.d(TAG, "SYN_ACK_SENT");
-        if(!handle_SYN_ACK_SENT(flag)) return;
-        else break;
-      case DATA:
-        Logger.d(TAG, "DATA");
-        if(!handle_DATA(ipDatagram, flag, len, rlen)) return;
-        else break;
-      case HALF_CLOSE_BY_CLIENT:
-        Logger.d(TAG, "HALF_CLOSE_BY_CLIENT");
-        if(!handle_HALF_CLOSE_BY_CLIENT(flag)) return;
-        else break;
-      case HALF_CLOSE_BY_SERVER:
-        Logger.d(TAG, "HALF_CLOSE_BY_SERVER");
-        if(!handle_HALF_CLOSE_BY_SERVER(flag, len)) return;
-        else break;
-      case CLOSED:
-        //status = Status.CLOSED;
-      default:
-        break;
+    private boolean handle_HALF_CLOSE_BY_CLIENT(byte flag) {
+        if ((flag != TCPHeader.ACK)) {
+            //TODO: find out why this would happen
+            Logger.e(TAG, "ACK is 0");
+            return false;
+        }
+        status = Status.CLOSED;
+        Logger.d(TAG, "HALF_CLOSE_BY_CLIENT close");
+        close(false);
+        return true;
     }
-  }
 
-  /*
-   *  methods for AbsForwarder
-   */
-  @Override
-  public boolean setup(InetAddress srcAddress, int src_port, InetAddress dstAddress, int dst_port) {
-    vpnService.getClientAppResolver().setLocalPortToRemoteMapping(src_port, dstAddress.getHostAddress(), dst_port);
-    receiver = new TCPForwarderWorker(srcAddress, src_port, dstAddress, dst_port, this);
-    if (!receiver.isValid()) {
-      return false;
-    } else receiver.start();
-    return true;
-  }
+    private boolean handle_HALF_CLOSE_BY_SERVER(byte flag, int len) {
+        if(flag == TCPHeader.FINACK) {
+            conn_info.increaseSeq(
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
+            );
+            status = Status.CLOSED;
+            Logger.d(TAG, "HALF_CLOSE_BY_SERVER close");
+            close(false);
+        } // ELSE ACK for the finack sent by the server
+        return true;
+    }
 
-  @Override
-  public void open() {
-    if (!closed) return;
-    super.open();
-    status = Status.LISTEN;
-  }
+    protected synchronized void handle_packet (IPDatagram ipDatagram) {
+        if(closed) return;
+        byte flag;
+        int len, rlen;
+        if(ipDatagram != null) {
+            flag = ((TCPHeader)ipDatagram.payLoad().header()).getFlag();//TODO: Sometimes header isUDP, will crash
+            len = ipDatagram.payLoad().virtualLength();
+            rlen = ipDatagram.payLoad().dataLength();
+            if(conn_info == null) conn_info = new TCPConnectionInfo(ipDatagram);
+        } else return;
+        //MyLogger.debugInfo(TAG, ((TCPDatagram)ipDatagram.payLoad()).debugInfo());
+        switch(status) {
+            case LISTEN:
+                Logger.d(TAG, "LISTEN");
+                if(!handle_LISTEN(ipDatagram, flag, len)) return;
+                else break;
+            case SYN_ACK_SENT:
+                Logger.d(TAG, "SYN_ACK_SENT");
+                if(!handle_SYN_ACK_SENT(flag)) return;
+                else break;
+            case DATA:
+                Logger.d(TAG, "DATA");
+                if(!handle_DATA(ipDatagram, flag, len, rlen)) return;
+                else break;
+            case HALF_CLOSE_BY_CLIENT:
+                Logger.d(TAG, "HALF_CLOSE_BY_CLIENT");
+                if(!handle_HALF_CLOSE_BY_CLIENT(flag)) return;
+                else break;
+            case HALF_CLOSE_BY_SERVER:
+                Logger.d(TAG, "HALF_CLOSE_BY_SERVER");
+                if(!handle_HALF_CLOSE_BY_SERVER(flag, len)) return;
+                else break;
+            case CLOSED:
+                //status = Status.CLOSED;
+            default:
+                break;
+        }
+    }
 
-  @Override
-  public void close() {
-    close(false);
-  }
+    /*
+     *  methods for AbsForwarder
+     */
+    @Override
+    public boolean setup(InetAddress srcAddress, int src_port, InetAddress dstAddress, int dst_port) {
+        vpnService.getClientAppResolver().setLocalPortToRemoteMapping(src_port, dstAddress.getHostAddress(), dst_port);
+        receiver = new TCPForwarderWorker(srcAddress, src_port, dstAddress, dst_port, this);
+        if (!receiver.isValid()) {
+            return false;
+        } else receiver.start();
+        return true;
+    }
 
-  @Override
-  public boolean isClosed() {
-    return closed;
-  }
+    @Override
+    public void open() {
+        if (!closed) return;
+        super.open();
+        status = Status.LISTEN;
+    }
 
-  @Override
-  public void forwardRequest(IPDatagram ipDatagram) {
-    handle_packet(ipDatagram);
-  }
+    @Override
+    public void close() {
+        close(false);
+    }
 
-  @Override
-  public synchronized void forwardResponse(byte[] response) {
-    if (conn_info == null) return;
-    conn_info.increaseSeq(
-            forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.DATA), response))
-    );
-  }
+    @Override
+    public boolean isClosed() {
+        return closed;
+    }
 
-  /*
-   * Methods for ICommunication
-   */
-  @Override
-  public void send(IPPayLoad payLoad) {
-    if(isClosed()) {
-      status = Status.HALF_CLOSE_BY_SERVER;
-      conn_info.increaseSeq(
-        forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null))
-      );
-    } else receiver.send(payLoad.data());
-  }
+    @Override
+    public void forwardRequest(IPDatagram ipDatagram) {
+        handle_packet(ipDatagram);
+    }
 
-  private void close(boolean sendRST) {
-    closed = true;
-    if(sendRST) forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.RST), null));
-    status = Status.CLOSED;
-    if (receiver != null) receiver.interrupt();
-    vpnService.getForwarderPools().release(this);
-    Logger.d(TAG, "Released");
-  }
+    @Override
+    public synchronized void forwardResponse(byte[] response) {
+        if (conn_info == null) return;
+        conn_info.increaseSeq(
+                forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.DATA), response))
+        );
+    }
 
-  public enum Status {
-    DATA, LISTEN, SYN_ACK_SENT, HALF_CLOSE_BY_CLIENT, HALF_CLOSE_BY_SERVER, CLOSED
-  }
+    /*
+     * Methods for ICommunication
+     */
+    @Override
+    public void send(IPPayLoad payLoad) {
+        if(isClosed()) {
+            status = Status.HALF_CLOSE_BY_SERVER;
+            conn_info.increaseSeq(
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null))
+            );
+        } else receiver.send(payLoad.data());
+    }
+
+    private void close(boolean sendRST) {
+        closed = true;
+        if(sendRST) forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.RST), null));
+        status = Status.CLOSED;
+        if (receiver != null) receiver.interrupt();
+        vpnService.getForwarderPools().release(this);
+        Logger.d(TAG, "Released");
+    }
+
+    public enum Status {
+        DATA, LISTEN, SYN_ACK_SENT, HALF_CLOSE_BY_CLIENT, HALF_CLOSE_BY_SERVER, CLOSED
+    }
 }
