@@ -24,7 +24,6 @@ import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Plugin.IPlugin;
-import com.PrivacyGuard.Plugin.LocationDetection;
 import com.PrivacyGuard.Utilities.ByteArray;
 import com.PrivacyGuard.Utilities.ByteArrayPool;
 
@@ -242,7 +241,7 @@ public class MySocketForwarder extends Thread {
                         if (appName == null) {
                             ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
                             if (des != null) appName = des.getNamespace();
-                            Logger.logTraffic(TAG, appName, "IP : " + destIP + "\nRequest : " + msg, ((LocationDetection) plugins.get(0)).getLocations());
+                            Logger.logTraffic(TAG, appName, "IP : " + destIP + "\nRequest : " + msg);
                         }
                     }
                 } else {

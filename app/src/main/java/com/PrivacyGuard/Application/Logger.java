@@ -63,35 +63,6 @@ public class Logger {
         return file;
     }
 
-    /**
-     * @param tag
-     * @param msg
-     * @param locations
-     */
-    public static void logTraffic(String tag, String appName, String msg, HashMap<String, Location> locations) {
-        //log network traffic ONLY in debug build
-        if (BuildConfig.DEBUG) {
-
-            //out put to terminal first
-            Log.v(tag, appName + " " + msg);
-            Log.v(tag, appName + " " + locations.toString());
-
-            try {
-                 PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
-                out.println("Time : " + df.format(new Date()));
-                out.println(" [ " + tag + " ] ");
-                out.println(msg);
-                for (Map.Entry<String, Location> locationEntry : locations.entrySet()) {
-                    out.println(locationEntry.getKey() + " : lon = " + locationEntry.getValue().getLongitude() + ", lat = " + locationEntry.getValue().getLatitude());
-                }
-                out.println("");
-                out.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     public static void logToFile(String tag, String msg) {
         try {
             PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(logFile, true)));
@@ -163,12 +134,18 @@ public class Logger {
         }
     }
 
-    public static void logLastLocations(HashMap<String, Location> locations) {
+    public static void logLastLocations(HashMap<String, Location> locations, boolean firstTime) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 
             try {
                 PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(locationFile, true)));
+                if (firstTime) {
+                    out.println("Initial Location Information");
+                } else {
+                    out.println("Active Location Update");
+                }
+                out.println("Time : " + df.format(new Date()));
                 for (Map.Entry<String, Location> locationEntry : locations.entrySet()) {
                     out.println(locationEntry.getKey() + " : lon = " + locationEntry.getValue().getLongitude() + ", lat = " + locationEntry.getValue().getLatitude());
                 }
@@ -178,5 +155,23 @@ public class Logger {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static void logLastLocation(Location loc) {
+        //log network traffic ONLY in debug build
+        if (BuildConfig.DEBUG) {
+
+            try {
+                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(locationFile, true)));
+                out.println("Passive Location Update");
+                out.println("Time : " + df.format(new Date()));
+                out.println(loc.getProvider() + " : lon = " + loc.getLongitude() + ", lat = " + loc.getLatitude());
+                out.println("");
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 }
