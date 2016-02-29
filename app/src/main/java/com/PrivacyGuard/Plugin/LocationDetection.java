@@ -19,11 +19,10 @@ import java.util.List;
 public class LocationDetection implements IPlugin {
     private final static String TAG = LocationDetection.class.getSimpleName();
     private final static boolean DEBUG = true;
-
+    private static final Object lock = new Object();
     private static long MIN_TIME_INTERVAL_PASSIVE = 60000; //one minute
     private static long MIN_TIME_INTERVAL_ACTIVE = 300000; //five minute
     private static float MIN_DISTANCE_INTERVAL = 10; // 10 meters
-
     private static LocationManager mLocationManager;
     private static HashMap<String, Location> mLocations = new HashMap<String, Location>();
     private static long mLastUpdate;
@@ -78,12 +77,14 @@ public class LocationDetection implements IPlugin {
 
     @Override
     public void setContext(Context context) {
-        if (mLocationManager == null) {
-            mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-            mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, MIN_TIME_INTERVAL_PASSIVE, MIN_DISTANCE_INTERVAL, new LocationUpdateListener(), Looper.getMainLooper());
-            updateLastLocations();
-            Logger.logLastLocations(mLocations, true);
-            mLastUpdate = System.currentTimeMillis();
+        synchronized (lock) {
+            if (mLocationManager == null) {
+                mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+                mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, MIN_TIME_INTERVAL_PASSIVE, MIN_DISTANCE_INTERVAL, new LocationUpdateListener(), Looper.getMainLooper());
+                updateLastLocations();
+                Logger.logLastLocations(mLocations, true);
+                mLastUpdate = System.currentTimeMillis();
+            }
         }
     }
 
@@ -92,7 +93,13 @@ public class LocationDetection implements IPlugin {
         for (String provider : providers) {
             Location loc = mLocationManager.getLastKnownLocation(provider);
             if (loc == null) continue;
-            mLocations.put(loc.getProvider(), loc);
+            if (!mLocations.containsKey(loc.getProvider())) {
+                synchronized (lock) {
+                    mLocations.put(loc.getProvider(), loc);
+                }
+            } else {
+                mLocations.put(loc.getProvider(), loc);
+            }
         }
     }
 
