@@ -19,6 +19,8 @@
 
 package com.PrivacyGuard.Application.Network.Forwader;
 
+import android.util.Pair;
+
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
 
@@ -29,38 +31,44 @@ import java.util.HashMap;
  * Created by frank on 2014-04-01.
  */
 public class ForwarderPools {
-  private HashMap<Integer, AbsForwarder> portToForwarder;
-  private MyVpnService vpnService;
+    private HashMap<Pair<Integer, Byte>, AbsForwarder> portToForwarder;
+    private MyVpnService vpnService;
 
-  public ForwarderPools(MyVpnService vpnService) {
-    this.vpnService = vpnService;
-    portToForwarder = new HashMap<Integer, AbsForwarder>();
-  }
-
-  public AbsForwarder get(int port, byte protocol) {
-    if(portToForwarder.containsKey(port) && !portToForwarder.get(port).isClosed())
-      return portToForwarder.get(port);
-    else {
-      AbsForwarder temp = getByProtocol(protocol);
-      temp.open();
-      portToForwarder.put(port, temp);
-      return temp;
+    public ForwarderPools(MyVpnService vpnService) {
+        this.vpnService = vpnService;
+        portToForwarder = new HashMap<>();
     }
-  }
 
-  private AbsForwarder getByProtocol(byte protocol) {
-    switch(protocol) {
-      case IPDatagram.TCP : return new TCPForwarder(vpnService);
-      case IPDatagram.UDP : return new UDPForwarder(vpnService);
-      default: return null;
+    public AbsForwarder get(int port, byte protocol) {
+        Pair<Integer, Byte> key = new Pair<>(port, protocol);
+        if (portToForwarder.containsKey(key) && !portToForwarder.get(key).isClosed()) {
+            return portToForwarder.get(key);
+        } else {
+            AbsForwarder temp = getByProtocol(protocol);
+            if (temp != null) {
+                temp.open();
+                portToForwarder.put(key, temp);
+            }
+            return temp;
+        }
     }
-  }
 
-  public void release(UDPForwarder udpForwarder) {
-    portToForwarder.values().removeAll(Collections.singleton(udpForwarder));
-  }
+    private AbsForwarder getByProtocol(byte protocol) {
+        switch (protocol) {
+            case IPDatagram.TCP:
+                return new TCPForwarder(vpnService);
+            case IPDatagram.UDP:
+                return new UDPForwarder(vpnService);
+            default:
+                return null;
+        }
+    }
 
-  public void release(TCPForwarder tcpForwarder) {
-    portToForwarder.values().removeAll(Collections.singleton(tcpForwarder));
-  }
+    public void release(UDPForwarder udpForwarder) {
+        portToForwarder.values().removeAll(Collections.singleton(udpForwarder));
+    }
+
+    public void release(TCPForwarder tcpForwarder) {
+        portToForwarder.values().removeAll(Collections.singleton(tcpForwarder));
+    }
 }
