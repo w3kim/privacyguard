@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Privacy Guard</string>
+
+    <!-- Main Activity -->
     <string name="connect">Enable Privacy Guard</string>
     <string name="connected">Privacy Guard Enabled</string>
     <string name="disconnect">Disconnect</string>
+    <string name="mainActivity_warn_dialog_title">Warning</string>
+    <string name="mainActivity_warn_dialog_msg">Unable to start Privacy Guard</string>
+    <string name="data_leakage_frequency">Data leakage frequency this month:</string>
+
 </resources>

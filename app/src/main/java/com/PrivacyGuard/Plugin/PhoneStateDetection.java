@@ -3,6 +3,7 @@ package com.PrivacyGuard.Plugin;
 import android.content.Context;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+
 import com.PrivacyGuard.Utilities.HashHelpers;
 
 import java.util.ArrayList;
@@ -12,19 +13,16 @@ import java.util.HashMap;
  * Created by frank on 23/07/14.
  */
 public class PhoneStateDetection implements IPlugin {
-    private TelephonyManager telephonyManager;
-    private final boolean DEBUG = false;
-    private final String TAG = PhoneStateDetection.class.getSimpleName();
     private static HashMap<String, String> nameofValue = new HashMap<String, String>();
     private static boolean init = false;
+    private final boolean DEBUG = false;
+    private final String TAG = PhoneStateDetection.class.getSimpleName();
+
     @Override
     public String handleRequest(String request) {
         String ret = "";
         for(String key : nameofValue.keySet()) {
-            if(request.contains(key)){
-                ret += nameofValue.get(key) + " ";
-                break;
-            }
+            if (request.contains(key)) ret += nameofValue.get(key) + " ";
         }
         if(DEBUG) Log.i(TAG + " request : " + ret + " : " + request.length(), request);
         return ret == "" ? null : ret + " is leaking";
@@ -48,7 +46,7 @@ public class PhoneStateDetection implements IPlugin {
     @Override
     public void setContext(Context context) {
         if(init) return;
-        telephonyManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         ArrayList<String> info = new ArrayList<String>();
         String deviceID = telephonyManager.getDeviceId();
         if(deviceID != null) {

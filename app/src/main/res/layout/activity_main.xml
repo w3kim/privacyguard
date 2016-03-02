@@ -16,22 +16,32 @@
 
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
               android:layout_height="wrap_content"
               android:orientation="vertical"
-              android:padding="10dp">
+              android:padding="10dp"
+    tools:context=".MainActivity"
+    android:weightSum="1">
 
-    <Button style="@style/item" android:id="@+id/connect_button" android:text="@string/connect"/>
+    <Button
+        style="@style/item"
+        android:id="@+id/connect_button"
+        android:text="@string/connect"
+/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Data leakage frequency this month:"
-        android:id="@+id/textView" />
+        android:text="@string/data_leakage_frequency"
+        android:textStyle="bold"
+        android:id="@+id/textView"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"/>
 
     <ListView android:id="@+id/leaksList"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
+        android:layout_height="390dp" >
     </ListView>
 </LinearLayout>
