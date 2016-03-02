@@ -6,7 +6,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
-import android.util.Log;
 
 import com.PrivacyGuard.Application.Logger;
 
@@ -21,16 +20,13 @@ public class LocationDetection implements IPlugin {
     private final static boolean DEBUG = true;
     private static final Object lock = new Object();
     private static long MIN_TIME_INTERVAL_PASSIVE = 60000; //one minute
-    private static long MIN_TIME_INTERVAL_ACTIVE = 300000; //five minute
     private static float MIN_DISTANCE_INTERVAL = 10; // 10 meters
     private static LocationManager mLocationManager;
-    private static HashMap<String, Location> mLocations = new HashMap<String, Location>();
-    private static long mLastUpdate;
+    private static HashMap<String, Location> mLocations = new HashMap<String, Location>();  //TODO: this actually leaks memory, any better ways?
 
     @Override
     public String handleRequest(String requestStr) {
         boolean ret = false;
-        updateLocations();
         for (Location loc : mLocations.values()) {
             double latD = Math.round(loc.getLatitude() * 10) / 10.0;
             double lonD = Math.round(loc.getLongitude() * 10) / 10.0;
@@ -47,18 +43,10 @@ public class LocationDetection implements IPlugin {
         }
 
         String msg = ret ? "is leaking location" : null;
-        if (DEBUG & ret) Log.d(TAG + "request : " + ret + " : " + requestStr.length(), requestStr);
+        //if (DEBUG & ret) Log.d(TAG + "request : " + ret + " : " + requestStr.length(), requestStr);
         return msg;
     }
 
-    private void updateLocations() {
-        long now = System.currentTimeMillis();
-        if ((now - mLastUpdate) > MIN_TIME_INTERVAL_ACTIVE) {    // more than 5 min since last known location
-            updateLastLocations();
-            mLastUpdate = now;
-            Logger.logLastLocations(mLocations, false);
-        }
-    }
 
     @Override
     public String handleResponse(String responseStr) {
@@ -83,7 +71,6 @@ public class LocationDetection implements IPlugin {
                 mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, MIN_TIME_INTERVAL_PASSIVE, MIN_DISTANCE_INTERVAL, new LocationUpdateListener(), Looper.getMainLooper());
                 updateLastLocations();
                 Logger.logLastLocations(mLocations, true);
-                mLastUpdate = System.currentTimeMillis();
             }
         }
     }
@@ -108,7 +95,6 @@ public class LocationDetection implements IPlugin {
         @Override
         public void onLocationChanged(Location loc) {
             mLocations.put(loc.getProvider(), loc);
-            mLastUpdate = System.currentTimeMillis();
             Logger.logLastLocation(loc);
         }
 
