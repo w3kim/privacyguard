@@ -29,11 +29,10 @@ import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 import android.support.v4.app.NotificationCompat;
 
-import com.PrivacyGuard.Application.Activities.DetailsActivity;
+import com.PrivacyGuard.Application.Activities.AppSummaryActivity;
 import com.PrivacyGuard.Application.Activities.R;
-import com.PrivacyGuard.Application.Database.DataLeak;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
-import com.PrivacyGuard.Application.Database.LocationLeak;
+import com.PrivacyGuard.Plugin.LeakReport;
 import com.PrivacyGuard.Application.Network.Forwader.ForwarderPools;
 import com.PrivacyGuard.Application.Network.LocalServer;
 import com.PrivacyGuard.Application.Network.Resolver.MyClientResolver;
@@ -45,14 +44,12 @@ import com.PrivacyGuard.Plugin.IPlugin;
 import com.PrivacyGuard.Plugin.LocationDetection;
 import com.PrivacyGuard.Plugin.PhoneStateDetection;
 import com.PrivacyGuard.Utilities.CertificateManager;
-import com.PrivacyGuard.Utilities.StringUtil;
 
 import org.sandrop.webscarab.plugin.proxy.SSLSocketFactoryFactory;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -67,7 +64,6 @@ public class MyVpnService extends VpnService implements Runnable {
     public static final String Password = "";
     private static final String TAG = MyVpnService.class.getSimpleName();
     private static final boolean DEBUG = true;
-    private static int mId = 0;
     private static HashMap<String, Integer[]> notificationMap = new HashMap<String, Integer[]>();
     //The virtual network interface, get and return packets to it
     private ParcelFileDescriptor mInterface;
@@ -87,7 +83,7 @@ public class MyVpnService extends VpnService implements Runnable {
     private Class pluginClass[] = {
             LocationDetection.class,
             PhoneStateDetection.class,
-            ContactDetection.class
+            ContactDetection.class,
     };
     private ArrayList<IPlugin> plugins;
 
@@ -143,7 +139,7 @@ public class MyVpnService extends VpnService implements Runnable {
         b.setMtu(1500);
         mInterface = b.establish();
         forwarderPools = new ForwarderPools(this);
-        sslSocketFactoryFactory = CertificateManager.generateCACertificate(this.getCacheDir().getAbsolutePath(), CAName,
+        sslSocketFactoryFactory = CertificateManager.generateCACertificate(Logger.getDiskCacheDir().getAbsolutePath(), CAName,
                 CertName, KeyType, Password.toCharArray());
     }
 
@@ -217,54 +213,31 @@ public class MyVpnService extends VpnService implements Runnable {
     ///////////////////////////////////////////////////
 
 
-    public boolean isLocation(String msg) {
-        msg = StringUtil.typeFromMsg(msg);
-        return msg.equals("Location");
-    }
-
-    public void notify(String appName, String msg) {
+    public void notify(LeakReport leak) {
         //update database
-        //if has notification, update
-        //if no notification, build
+
         DatabaseHandler db = new DatabaseHandler(this);
 
-        if (isLocation(msg)) {
-            String location = StringUtil.locationFromMsg(msg);
-            db.addLocationLeak(new LocationLeak(mId, appName, location, dateFormat.format(new Date())));
-        }
-
-        int notifyId = db.findNotificationId(appName, msg);
-        if (notifyId >= 0) {     // already have this notification, update content
-            int frequency = db.findNotificationCounter(appName, msg);
-            db.addDataLeak(new DataLeak(notifyId, appName, msg, frequency, dateFormat.format(new Date())));
-            db.close();
-            updateNotification(appName, msg);
+        int notifyId = db.findNotificationId(leak);
+        if (notifyId < 0) {
             return;
         }
-        // else this is new, update database Entry
-        db.addDataLeak(new DataLeak(mId, appName, msg, 1, dateFormat.format(new Date())));
-        List<LocationLeak> leakList = db.getLocationLeaks(appName);
 
+        int frequency = db.findNotificationCounter(notifyId, leak.category.name());
+        db.close();
 
-        // this is ignored, do not send notification
-        if (db.isIgnored(appName, msg)) {
-            return;
-        }
-        //Logger.d(TAG, msg);
-        // build notification
+        buildNotification(notifyId, frequency, leak);
 
-        String content = msg;
-        buildNotification(appName, msg, content, notifyId, db.findGeneralNotificationId(appName), leakList);
-        mId++;
     }
 
-    void buildNotification(String appName, String msg, String content, int notifyId, int generalNotifyId, List<LocationLeak> leakList) { // ignore action
+    void buildNotification(int notifyId, int frequency, LeakReport leak) {
+        String msg = leak.appName + " is leaking " + leak.category.name() + " information";
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.drawable.notify)
-                        .setContentTitle(appName)
-                        .setContentText(content)
-                        .setTicker(appName + " " + msg)
+                        .setSmallIcon(R.drawable.ic_spam)
+                        .setContentTitle(leak.appName)
+                        .setContentText(msg).setNumber(frequency)
+                        .setTicker(msg)
                         .setAutoCancel(true);
 
         Intent ignoreIntent = new Intent(this, ActionReceiver.class);
@@ -272,23 +245,20 @@ public class MyVpnService extends VpnService implements Runnable {
         ignoreIntent.putExtra("notificationId", notifyId);
         // use System.currentTimeMillis() to have a unique ID for the pending intent
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), (int) System.currentTimeMillis(), ignoreIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.addAction(R.drawable.ignore, "Ignore this kind of leaks", pendingIntent);
+        mBuilder.addAction(R.drawable.ic_cancel, "Ignore this kind of leaks", pendingIntent);
 
-        //TODO: Currently initiates a new activity instance each time, should recycle if already open
         // Creates an explicit intent for an Activity in your app
-        Intent resultIntent = new Intent(this, DetailsActivity.class);
-        resultIntent.putExtra(PrivacyGuard.EXTRA_APP, appName);
-        resultIntent.putExtra(PrivacyGuard.EXTRA_SIZE, String.valueOf(leakList.size()));
-        for (int i = 0; i < leakList.size(); i++) {
-            resultIntent.putExtra(PrivacyGuard.EXTRA_DATA + i, leakList.get(i).getLocation()); // to pass values between activities
-        }
+        Intent resultIntent = new Intent(this, AppSummaryActivity.class);
+        resultIntent.putExtra(PrivacyGuard.EXTRA_PACKAGE_NAME, leak.packageName);
+        resultIntent.putExtra(PrivacyGuard.EXTRA_APP_NAME, leak.appName);
+        resultIntent.putExtra(PrivacyGuard.EXTRA_IGNORE, 0);
 
         // The stack builder object will contain an artificial back stack for the
         // started Activity.
         // This ensures that navigating backward from the Activity leads out of home screen
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
         // Adds the back stack for the Intent (but not the Intent itself)
-        stackBuilder.addParentStack(DetailsActivity.class);
+        stackBuilder.addParentStack(AppSummaryActivity.class);
         // Adds the Intent that starts the Activity to the top of the stack
         stackBuilder.addNextIntent(resultIntent);
         PendingIntent resultPendingIntent =
@@ -297,29 +267,11 @@ public class MyVpnService extends VpnService implements Runnable {
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-
         // builds the notification and sends it
-        mNotificationManager.notify(generalNotifyId, mBuilder.build());
+        mNotificationManager.notify(notifyId, mBuilder.build());
 
     }
 
-    public void updateNotification(String appName, String msg) {
-        DatabaseHandler db = new DatabaseHandler(this);
-        int notifyId = db.findNotificationId(appName, msg);
-        int generalNotifyId = db.findGeneralNotificationId(appName);
-        List<LocationLeak> leakList = db.getLocationLeaks(appName);
-        boolean ignored = db.isIgnored(appName, msg);
-
-        if (generalNotifyId >= 0 && !ignored) {
-            String content = "Number of leaks: " + db.findNotificationCounter(appName, msg);
-            // Because the ID remains unchanged, the existing notification is updated.
-            Logger.i(TAG, "NOTIFYID IS SUCCESSFULL" + notifyId);
-            buildNotification(appName, msg, content, notifyId, db.findGeneralNotificationId(appName), leakList);
-        } else {
-            Logger.i(TAG, "NOTIFYID IS FAILING" + notifyId);
-        }
-
-    }
 
     public void deleteNotification(int id) {
         NotificationManager mNotificationManager =

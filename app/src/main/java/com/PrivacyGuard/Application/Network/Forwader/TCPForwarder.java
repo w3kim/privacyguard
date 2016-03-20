@@ -28,6 +28,8 @@ import com.PrivacyGuard.Application.Network.TCP.TCPDatagram;
 import com.PrivacyGuard.Application.Network.TCP.TCPHeader;
 import com.PrivacyGuard.Application.Network.TCPConnectionInfo;
 
+import junit.framework.Assert;
+
 import java.net.InetAddress;
 /**
  * Created by frank on 2014-03-27.
@@ -35,6 +37,7 @@ import java.net.InetAddress;
 public class TCPForwarder extends AbsForwarder implements ICommunication {
     private final String TAG = "TCPForwarder";
     protected Status status;
+    protected boolean firstData = true;
     private TCPForwarderWorker receiver;
     private TCPConnectionInfo conn_info;
 
@@ -79,11 +82,16 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     }
 
     private boolean handle_DATA(IPDatagram ipDatagram, byte flag, int len, int rlen) {
-        if (((flag & TCPHeader.ACK) == 0)) {
-            //TODO: find out why this would happen
-            Logger.e(TAG, "ACK is 0 for Datagram:\nHeader: " + ipDatagram.header().toString() +"\nPayload: "+ipDatagram.payLoad().toString());
-            return false;
+        if(firstData){
+            firstData = false;
+        }else{
+            assert ((flag & TCPHeader.ACK) == 0);
+            if (((flag & TCPHeader.ACK) == 0)) {
+                Logger.e(TAG, "ACK is 0 for Datagram:\nHeader: " + ipDatagram.header().toString() +"\nPayload: "+ipDatagram.payLoad().toString());
+                return false;
+            }
         }
+
         if(rlen > 0) { // send data
             send(ipDatagram.payLoad());
             conn_info.increaseSeq(
@@ -106,6 +114,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     }
 
     private boolean handle_HALF_CLOSE_BY_CLIENT(byte flag) {
+        assert(flag == TCPHeader.ACK);
         if ((flag != TCPHeader.ACK)) {
             //TODO: find out why this would happen
             Logger.e(TAG, "ACK is 0");
@@ -134,7 +143,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         byte flag;
         int len, rlen;
         if(ipDatagram != null) {
-            flag = ((TCPHeader)ipDatagram.payLoad().header()).getFlag();//TODO: Sometimes header isUDP, will crash
+            flag = ((TCPHeader)ipDatagram.payLoad().header()).getFlag();
             len = ipDatagram.payLoad().virtualLength();
             rlen = ipDatagram.payLoad().dataLength();
             if(conn_info == null) conn_info = new TCPConnectionInfo(ipDatagram);

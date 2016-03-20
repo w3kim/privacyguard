@@ -114,7 +114,7 @@ public class Logger {
         }
     }
 
-    public static void logTraffic(String tag, String appName, String msg) {
+    public static void logTraffic(String tag, String packageName,String appName, String ip, String msg, String category) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 
@@ -124,9 +124,15 @@ public class Logger {
             try {
                 PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
                 out.println("Time : " + df.format(new Date()));
-                out.println(" [ " + appName + " ] ");
-                out.println(msg);
+                out.println(" [ " +  packageName+ " ]  "+ appName);
+                out.println("IP: "+ ip);
                 out.println("");
+                out.println("Request "+ msg);
+                out.println("");
+                if(category != null){
+                    out.println("Leaking: " + category);
+                    out.println("=========================");
+                }
                 out.close();
             } catch (IOException e) {
                 e.printStackTrace();

@@ -7,8 +7,8 @@ import android.content.Context;
  */
 public interface IPlugin {
   // May modify the content of the request and response
-  public String handleRequest(String request);
-  public String handleResponse(String response);
+  public LeakReport handleRequest(String request);
+  public LeakReport handleResponse(String response);
   public String modifyRequest(String request);
   public String modifyResponse(String response);
   public void setContext(Context context);

@@ -29,12 +29,13 @@ import android.os.Bundle;
 import android.security.KeyChain;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ListView;
+import android.widget.Switch;
+import android.widget.ToggleButton;
 
-import com.PrivacyGuard.Application.Database.DataLeak;
+import com.PrivacyGuard.Application.Database.AppSummary;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
-import com.PrivacyGuard.Application.Database.LocationLeak;
 import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.PrivacyGuard;
@@ -43,28 +44,31 @@ import com.PrivacyGuard.Utilities.CertificateManager;
 import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.security.cert.CertificateEncodingException;
 
 public class MainActivity extends Activity {
-    public static final String FIRST_COLUMN="First";
-    public static final String SECOND_COLUMN="Second";
-    public static final String THIRD_COLUMN="Third";
-    public static final String FOURTH_COLUMN="Fourth";
-    public static final String FIFTH_COLUMN="Fifth";
+
     public static final boolean debug = false;
-    private static String TAG = "UI";
+    private static String TAG = "MainActivity";
     private Intent intent;
     private ArrayList<HashMap<String, String>> list;
-    private Button buttonConnect;
+
+    private ToggleButton buttonConnect;
+    private Switch asyncSwitch;
     private ListView listLeak;
+    private MainListViewAdapter adapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         intent = new Intent(this, MyVpnService.class);
+
+        if (!MyVpnService.isRunning()) {
+            startVPN();
+        }
+
 
         DatabaseHandler db = new DatabaseHandler(this);
         db.monthlyReset();
@@ -72,32 +76,47 @@ public class MainActivity extends Activity {
         installCertificate();
 
         setContentView(R.layout.activity_main);
-        buttonConnect = (Button) findViewById(R.id.connect_button);
-        listLeak = (ListView)findViewById(R.id.leaksList);
-        buttonConnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!MyVpnService.isRunning()) {
-                    startVPN();
+        buttonConnect = (ToggleButton) findViewById(R.id.connect_button);
+        buttonConnect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    PrivacyGuard.doFilter = true;
+                    Logger.i(TAG, "filter on");
+                } else {
+                    PrivacyGuard.doFilter = false;
+                    Logger.i(TAG, "filter off");
                 }
             }
         });
+
+        asyncSwitch = (Switch) findViewById(R.id.async_switch);
+        asyncSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    PrivacyGuard.asynchronous = true;
+                    Logger.i(TAG, "asynchronous on");
+                } else {
+                    PrivacyGuard.asynchronous = false;
+                    Logger.i(TAG, "asynchronous off");
+                }
+            }
+        });
+
+        listLeak = (ListView) findViewById(R.id.leaksList);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        if (!MyVpnService.isRunning()) {
+            startVPN();
+        }
+if(PrivacyGuard.doFilter){
+    buttonConnect.setChecked(true);
+}
         populateLeakList();
 
-        if(MyVpnService.isRunning()){
-            buttonConnect.setText(R.string.connected);
-            buttonConnect.setEnabled(false);
-
-        }else{
-            Logger.d(TAG, "VPN service has stopped");
-            buttonConnect.setText(R.string.connect);
-            buttonConnect.setEnabled(true);
-        }
     }
 
     /**
@@ -107,103 +126,41 @@ public class MainActivity extends Activity {
         // -----------------------------------------------------------------------
         // Database Fetch
         DatabaseHandler db = new DatabaseHandler(this);
-        List<DataLeak> leaks = db.getAllLeaks();
-        // -----------------------------------------------------------------------
-        list = new ArrayList<HashMap<String,String>>();
+        List<AppSummary> apps = db.getAllApps();
+        db.close();
 
-        HashMap<String,ArrayList<Integer>> groupedList = new HashMap<String, ArrayList<Integer>>();
-
-        for (DataLeak l : leaks) {
-            if (groupedList.containsKey(l.getAppName())){
-                ArrayList<Integer> previousCount = groupedList.get(l.getAppName());
-                if (l.getLeakType().replace("is leaking", "").equals("Android ID")){
-                    previousCount.set(1,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("IMEI")) {
-                    previousCount.set(0,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("Location")) {
-                    previousCount.set(2,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("phone_number") || l.getLeakType().replace("is leaking", "").equalsIgnoreCase("email_address")) {
-                    previousCount.set(3,l.getFrequency());
-                }
-
-                groupedList.put(l.getAppName(), previousCount);
-            } else {
-                ArrayList<Integer> addCount = new ArrayList<Integer>();
-                addCount.add(0);
-                addCount.add(0);
-                addCount.add(0);
-                if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("Android ID")) {
-                    addCount.set(1,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("IMEI")) {
-                    addCount.set(0,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("location")) {
-                    addCount.set(2,l.getFrequency());
-                } else if (l.getLeakType().replace("is leaking", "").equalsIgnoreCase("phone_number") || l.getLeakType().replace("is leaking", "").equalsIgnoreCase("email_address")) {
-                    addCount.set(3,l.getFrequency());
-                }
-
-                groupedList.put(l.getAppName(), addCount);
-            }
+        if (apps == null) {
+            return;
         }
+        if (adapter == null) {
+            adapter = new MainListViewAdapter(this, apps);
+            listLeak.setAdapter(adapter);
+            listLeak.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    Intent intent = new Intent(MainActivity.this, AppSummaryActivity.class);
 
-        HashMap<String,String> header = new HashMap<String, String>();
-        header.put(FIRST_COLUMN, "App Name");
-        header.put(SECOND_COLUMN, "IMEI");
-        header.put(THIRD_COLUMN, "Android ID");
-        header.put(FOURTH_COLUMN, "Location");
-        header.put(FIFTH_COLUMN, "Contact");
-        list.add(header);
+                    AppSummary app = (AppSummary) parent.getItemAtPosition(position);
 
-        Iterator it = groupedList.entrySet().iterator();
-        while (it.hasNext()) {
-            HashMap.Entry pair = (HashMap.Entry)it.next();
-            System.out.println(pair.getKey() + " = " + pair.getValue());
-            ArrayList<Integer> counters = (ArrayList)  pair.getValue();
-            HashMap<String, String> temp = new HashMap<String, String>();
-            temp.put(FIRST_COLUMN, pair.getKey().toString());
-            temp.put(SECOND_COLUMN, counters.get(0).toString());
-            temp.put(THIRD_COLUMN, counters.get(1).toString());
-            temp.put(FOURTH_COLUMN, counters.get(2).toString());
-            list.add(temp);
-            it.remove(); // avoids a ConcurrentModificationException
-        }
+                    intent.putExtra(PrivacyGuard.EXTRA_PACKAGE_NAME, app.packageName);
+                    intent.putExtra(PrivacyGuard.EXTRA_APP_NAME, app.appName);
+                    intent.putExtra(PrivacyGuard.EXTRA_IGNORE, app.ignore);
 
-        ListViewAdapter adapter=new ListViewAdapter(this, list);
-        listLeak.setAdapter(adapter);
-
-        listLeak.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, final View view, int position, long id) {
-                if (position != 0) {
-                    Intent intent = new Intent(MainActivity.this, DetailsActivity.class);
-                    DatabaseHandler db = new DatabaseHandler(MainActivity.this);
-
-                    String appName = list.get(position).get(FIRST_COLUMN);
-                    List<LocationLeak> leakList = db.getLocationLeaks(appName);
-
-                    intent.putExtra(PrivacyGuard.EXTRA_APP, appName);
-                    intent.putExtra(PrivacyGuard.EXTRA_SIZE, String.valueOf(leakList.size()));
-
-                    for (int i = 0; i < leakList.size(); i++) {
-                        intent.putExtra(PrivacyGuard.EXTRA_DATA + i, leakList.get(i).getLocation()); // to pass values between activities
-                        intent.putExtra(PrivacyGuard.EXTRA_DATE_FORMAT + i, leakList.get(i).getTimeStamp());
-                    }
                     startActivity(intent);
                 }
-
-            }
-
-        });
-
+            });
+        } else {
+            adapter.updateData(apps);
+        }
     }
 
     /**
      *
      */
     public void installCertificate() {
-        String Dir = this.getCacheDir().getAbsolutePath();
+        String Dir = Logger.getDiskCacheDir().getAbsolutePath();
         try {
-            if(CertificateManager.isCACertificateInstalled(Dir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password))
+            if (CertificateManager.isCACertificateInstalled(Dir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password))
                 return;
         } catch (KeyStoreException e) {
             e.printStackTrace();
@@ -239,13 +196,11 @@ public class MainActivity extends Activity {
                 warnDialog.show();
             } else {
                 Logger.d(TAG, "VPN service started");
-                buttonConnect.setText(R.string.connected);
-                buttonConnect.setEnabled(false);
             }
         }
     }
 
-    private void startVPN() {//TODO: why...need to call startActivityForResult() ?
+    private void startVPN() {
         Intent intent = VpnService.prepare(this);
         if (intent != null) {
             startActivityForResult(intent, 0);

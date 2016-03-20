@@ -24,6 +24,7 @@ import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Plugin.IPlugin;
+import com.PrivacyGuard.Plugin.LeakReport;
 import com.PrivacyGuard.Utilities.ByteArray;
 import com.PrivacyGuard.Utilities.ByteArrayPool;
 
@@ -123,88 +124,7 @@ public class MySocketForwarder extends Thread {
         }
     }
 
-    public void run2() {
-        ByteBuffer msg = ByteBuffer.allocate(LIMIT);
-        int len, len2 = 0, total = 0;
-        StringBuilder stringBuilder = new StringBuilder(LIMIT);
-        while (true) {
-            try {
-                msg.clear();
-                len = inChannel.read(msg);
-                msg.flip();
-                //if (len != msg.remaining()) Logger.d(TAG, "WTFWTF Read " + len + " : but " + msg.remaining());
-                //Logger.d(TAG, "" + outChannel.socket().getLocalPort() + ":" + outChannel.socket().getPort() + " " + inChannel.socket().getLocalPort() + ":" + inChannel.socket().getPort() + " : " + total + " : " + len);
-                total += len;
-                //Logger.d(TAG, "" + outChannel.socket().getLocalPort() + ":" + outChannel.socket().getPort() + " " + inChannel.socket().getLocalPort() + ":" + inChannel.socket().getPort() + " : " + total + " : " + len);
-                if (len < 0) return;
-                // Build string from byte array
-                //stringBuilder.insert(0, msg.array(), 0, len);
-                //if(MainActivity.doFilter) filter(new String(msg.array(), 0, len));
-                while (msg.hasRemaining()) {
-                    len2 = outChannel.write(msg);
-                    //Logger.d(TAG, "Remaining" + msg.hasRemaining());
-                }
-        /*
-        if (len != len2) {
-          Logger.d(TAG, "WTFWTFWTF" + len + " : " + len2 + " " + outgoing);
-        }
-        */
-            } catch (SocketException e) {
-                return;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
-    public void run_select() {
-        Selector selector = null;
-        try {
-            selector = Selector.open();
-            inChannel.register(selector, SelectionKey.OP_READ);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-        ByteBuffer msg = ByteBuffer.allocate(LIMIT);
-        while (selector.isOpen()) {
-            try {
-                selector.select();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
-            while (iterator.hasNext()) {
-                SelectionKey key = iterator.next();
-                iterator.remove();
-                if (!key.isValid()) continue;
-                else if (key.isReadable()) {
-                    try {
-                        msg.clear();
-                        int length = inChannel.read(msg);
-                        Logger.d(TAG, "Read from channel " + length + " " + outgoing + " " + inChannel.socket().getPort());
-                        if (length < 0) return;
-                        msg.flip();
-                        //filter(new String(msg.array(), 0, length));
-                        while (msg.hasRemaining()) {
-                            outChannel.write(msg);
-                        }
-                    } catch (SocketException e) {
-                        Logger.d(TAG, "WAIT here");
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        Logger.d(TAG, TAG + " End" + " : " + outgoing);
-    }
 
     public void run() {
         FilterThread filterThread = new FilterThread();
@@ -234,45 +154,32 @@ public class MySocketForwarder extends Thread {
 
     public class FilterThread extends Thread {
         public void filter(String msg) {
-
-            if (PrivacyGuard.doFilter) {
-                if (EVALUATE) {
-                    if (outgoing) {
-                        if (appName == null) {
+            if (PrivacyGuard.doFilter && outgoing) {
+                for (IPlugin plugin : plugins) {
+                    LeakReport leak = plugin.handleRequest(msg);
+                    if (leak != null) {
+                        if (appName == null || packageName == null) {
                             ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
-                            if (des != null) appName = des.getNamespace();
-                            Logger.logTraffic(TAG, appName, "IP : " + destIP + "\nRequest : " + msg);
-                        }
-                    }
-                } else {
-                    //Log.d("TAG", msg);
-                    for (IPlugin plugin : plugins) {
-                        String ret = outgoing ? plugin.handleRequest(msg) : plugin.handleResponse(msg);
-                        if (outgoing) {
-                            if (ret != null) {
-                                if (appName == null) {
-                                    ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
-                                    if (des != null) {
-                                        appName = des.getName();
-                                        packageName = des.getNamespace();
-                                    } else {
-                                        appName = UNKNOWN;
-                                        packageName = UNKNOWN;
-                                    }
-                                }
-                                vpnService.notify(appName, ret);
+                            if (des != null) {
+                                appName = des.getName();
+                                packageName = des.getNamespace();
+                            } else {
+                                appName = UNKNOWN;
+                                packageName = UNKNOWN;
                             }
-                            if (ret == null) ret = UNKNOWN;
-                            Logger.logTraffic(TAG, appName + " " + packageName, "IP : " + destIP + "\nRequest : " + msg + "\nType : " + ret);
                         }
+                        leak.appName = appName;
+                        leak.packageName = packageName;
+                        vpnService.notify(leak);
                     }
+                    Logger.logTraffic(TAG, packageName, appName, destIP, msg, leak == null ? null : leak.category.name());
                 }
             }
         }
 
         public void run() {
             ByteArray temp;
-            while (true) {
+            while (true) {  //TODO: instead of sleep and loop, we might want to use synchronization?
                 while ((temp = toFilter.poll()) == null) {
                     try {
                         Thread.sleep(10);

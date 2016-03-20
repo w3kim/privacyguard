@@ -1,0 +1,6 @@
+1: App name might not be sufficient for id, change to use package name instead
+    a: but we can only get UID from port, and UID could be shared by multiple packages....(for example those google native apps)
+2: No good regex for contact detection
+     match against Contact App/Phone book?
+3: DB monthly reset method need to be fixed
+4: using global filter variable to toggle app "on/off" rather than start/stop vpn. Good approach?

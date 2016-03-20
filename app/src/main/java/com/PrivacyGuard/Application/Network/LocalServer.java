@@ -96,11 +96,6 @@ public class LocalServer extends Thread {
           } else {
             sslPinning.add(descriptor.getRemoteAddress());
             ssl_client.close();
-            /*
-            client.close();
-            target.close();
-            return;
-            */
           }
         }
         MySocketForwarder.connect(client, target, vpnService);

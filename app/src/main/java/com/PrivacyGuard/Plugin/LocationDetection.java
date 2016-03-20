@@ -6,8 +6,10 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 
 import com.PrivacyGuard.Application.Logger;
+import com.PrivacyGuard.Plugin.LeakReport.LeakCategory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,31 +27,34 @@ public class LocationDetection implements IPlugin {
     private static HashMap<String, Location> mLocations = new HashMap<String, Location>();  //TODO: this actually leaks memory, any better ways?
 
     @Override
-    public String handleRequest(String requestStr) {
-        boolean ret = false;
+    @Nullable
+    public LeakReport handleRequest(String requestStr) {
         for (Location loc : mLocations.values()) {
             double latD = Math.round(loc.getLatitude() * 10) / 10.0;
             double lonD = Math.round(loc.getLongitude() * 10) / 10.0;
             String latS = "" + latD, lonS = "" + lonD;
-            ret |= requestStr.contains(latS) && requestStr.contains(lonS);
-            ret |= requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", ""));
+            if ((requestStr.contains(latS) && requestStr.contains(lonS)) || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
+                LeakReport rpt = new LeakReport(LeakCategory.LOCATION);
+                rpt.addLeak(new LeakInstance("location", latS + ":" + lonS));
+                return rpt;
+            }
 
             latD = ((int) (loc.getLatitude() * 10)) / 10.0;
             lonD = ((int) (loc.getLongitude() * 10)) / 10.0;
             latS = "" + latD;
             lonS = "" + lonD;
-            ret |= requestStr.contains(latS) && requestStr.contains(lonS);
-            ret |= requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", ""));
+            if ((requestStr.contains(latS) && requestStr.contains(lonS)) || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
+                LeakReport rpt = new LeakReport(LeakCategory.LOCATION);
+                rpt.addLeak(new LeakInstance("location", latS + ":" + lonS));
+                return rpt;
+            }
         }
-
-        String msg = ret ? "is leaking location" : null;
-        //if (DEBUG & ret) Log.d(TAG + "request : " + ret + " : " + requestStr.length(), requestStr);
-        return msg;
+        return null;
     }
 
 
     @Override
-    public String handleResponse(String responseStr) {
+    public LeakReport handleResponse(String responseStr) {
         return null;
     }
 

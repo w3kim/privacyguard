@@ -26,8 +26,8 @@ public class ActionReceiver extends BroadcastReceiver {
         manager.cancel(notifyId);
 
         DatabaseHandler db = new DatabaseHandler(context);
-        DataLeak leak = db.getLeak(notifyId);
-        leak.setIgnore(1);
-        db.updateLeak(leak);
+
+        //TODO: set ignore
+        db.setIgnoreAppCategory(notifyId,true);
     }
 }
