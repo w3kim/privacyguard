@@ -1,18 +1,25 @@
 package com.PrivacyGuard.Application;
 
+import android.Manifest;
 import android.app.Application;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.support.v4.content.ContextCompat;
 
 /**
  * Created by justinhu on 16-01-15.
  */
 public class PrivacyGuard extends Application {
     public final static String EXTRA_DATA = "PrivacyGuard.DATA";
-    public final static String EXTRA_APP = "PrivacyGuard.APP";
+    public final static String EXTRA_ID = "PrivacyGuard.id";
+    public final static String EXTRA_APP_NAME = "PrivacyGuard.appName";
+    public final static String EXTRA_PACKAGE_NAME = "PrivacyGuard.packageName";
+    public final static String EXTRA_CATEGORY = "PrivacyGuard.category";
+    public final static String EXTRA_IGNORE = "PrivacyGuard.ignore";
     public final static String EXTRA_SIZE = "PrivacyGuard.SIZE";
     public final static String EXTRA_DATE_FORMAT = "PrivacyGuard.DATE";
-    public static boolean doFilter = true;
-    public static boolean asynchronous = false;
+    public static boolean doFilter = false;
+    public static boolean asynchronous = false; //TODO: so all are synchronous? not sure what's the effect
     public static int tcpForwarderWorkerRead = 0;
     public static int tcpForwarderWorkerWrite = 0;
     public static int socketForwarderWrite = 0;
@@ -33,9 +40,4 @@ public class PrivacyGuard extends Application {
         super.onCreate();
         sApplication = this;
     }
-
-    /*public static boolean checkLocationPermission(){
-        return (ContextCompat.checkSelfPermission(getAppContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(getAppContext(),Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED);
-    }*/
 }

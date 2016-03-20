@@ -5,9 +5,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.support.annotation.Nullable;
 
-import com.PrivacyGuard.Utilities.StringUtil;
+import com.PrivacyGuard.Application.Logger;
+import com.PrivacyGuard.Plugin.LeakInstance;
+import com.PrivacyGuard.Plugin.LeakReport;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -29,37 +30,55 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     // DataLeaks table name
     private static final String TABLE_DATA_LEAKS = "data_leaks";
-    private static final String TABLE_LOCATION_LEAKS = "location_leaks";
+    private static final String TABLE_LEAK_SUMMARY = "leak_summary";
 
     // DataLeaks Table Columns names
-    private static final String KEY_ID = "id";
+    private static final String KEY_ID = "_id";
     private static final String KEY_NAME = "app_name";
-    private static final String KEY_TYPE = "leak_type";
-    private static final String KEY_FREQUENCY = "leak_frequency";
-    private static final String KEY_IGNORE = "ignore";
+    private static final String KEY_PACKAGE = "package_name";
+    private static final String KEY_CATEGORY = "category";
+    private static final String KEY_TYPE = "type";
+    private static final String KEY_CONTENT = "content";
     private static final String KEY_TIME_STAMP = "time_stamp";
 
-    private static final String KEY_LOCATION = "location";
+    private static final String KEY_FREQUENCY = "frequency";
+    private static final String KEY_IGNORE = "ignore";
+
+    private static final String CREATE_DATA_LEAKS_TABLE = "CREATE TABLE " + TABLE_DATA_LEAKS + "("
+            + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+            + KEY_PACKAGE + " TEXT,"
+            + KEY_NAME + " TEXT,"
+            + KEY_CATEGORY + " TEXT,"
+            + KEY_TYPE + " TEXT,"
+            + KEY_CONTENT + " TEXT,"
+            + KEY_TIME_STAMP + " TEXT" + ")";
+
+    private static final String[] DATA_LEAK_TABLE_COLUMNS = new String[]{KEY_ID, KEY_PACKAGE, KEY_NAME, KEY_CATEGORY, KEY_TYPE, KEY_CONTENT, KEY_TIME_STAMP};
+
+    private static final String CREATE_LEAK_SUMMARY_TABLE = "CREATE TABLE " + TABLE_LEAK_SUMMARY + "("
+            + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+            + KEY_PACKAGE + " TEXT,"
+            + KEY_NAME + " TEXT,"
+            + KEY_CATEGORY + " TEXT,"
+            + KEY_FREQUENCY + " INTEGER,"
+            + KEY_IGNORE + " INTEGER" + ")";
+
+    private static final String[] LEAK_SUMMARY_TABLE_COLUMNS = new String[]{KEY_ID, KEY_PACKAGE, KEY_NAME,KEY_CATEGORY, KEY_FREQUENCY, KEY_IGNORE};
+
+
+    private SQLiteDatabase mDB;
 
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        mDB = getReadableDatabase();
     }
 
     // Creating Tables
     @Override
     public void onCreate(SQLiteDatabase db) {
         //create table data_leaks
-        String CREATE_DATA_LEAKS_TABLE = "CREATE TABLE " + TABLE_DATA_LEAKS + "("
-                + KEY_ID + " INTEGER PRIMARY KEY," + KEY_NAME + " TEXT,"
-                + KEY_TYPE + " TEXT," + KEY_FREQUENCY + " INTEGER," + KEY_IGNORE
-                + " INTEGER," + KEY_TIME_STAMP + " TEXT" + ")";
         db.execSQL(CREATE_DATA_LEAKS_TABLE);
-
-        //create table location_leaks
-        String CREATE_LOCATION_LEAKS_TABLE = "CREATE TABLE " + TABLE_LOCATION_LEAKS + "("
-                + KEY_ID + " INTEGER PRIMARY KEY," + KEY_NAME + " TEXT,"
-                + KEY_LOCATION + " TEXT, " + KEY_TIME_STAMP + " TEXT" + ")";
-        db.execSQL(CREATE_LOCATION_LEAKS_TABLE);
+        db.execSQL(CREATE_LEAK_SUMMARY_TABLE);
     }
 
     // Upgrading database
@@ -67,8 +86,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Drop older table if existed
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_DATA_LEAKS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_LOCATION_LEAKS);
-
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_LEAK_SUMMARY);
         // Create tables again
         onCreate(db);
     }
@@ -96,19 +114,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             }
         }
 
-        //reset table location_leak
-        cursor = db.query(TABLE_LOCATION_LEAKS, new String[]{KEY_TIME_STAMP}, null,
-                null, null, null, " date(" + KEY_TIME_STAMP + ") DESC", null);
-
-        if (cursor != null && cursor.getCount() > 0) {
-            cursor.moveToFirst();
-            String dateString = cursor.getString(0).substring(3, 5);
-
-            if (!dateString.equals(m)) {
-                resetLocationLeakTable();
-            }
-        }
-
         if (cursor != null) {
             cursor.close();
         }
@@ -119,271 +124,207 @@ public class DatabaseHandler extends SQLiteOpenHelper {
      */
 
     void resetDataLeakTable() {
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_DATA_LEAKS);
-
-        String CREATE_DATA_LEAKS_TABLE = "CREATE TABLE " + TABLE_DATA_LEAKS + "("
-                + KEY_ID + " INTEGER PRIMARY KEY," + KEY_NAME + " TEXT,"
-                + KEY_TYPE + " TEXT," + KEY_FREQUENCY + " INTEGER," + KEY_IGNORE
-                + " INTEGER," + KEY_TIME_STAMP + " TEXT" + ")";
-        db.execSQL(CREATE_DATA_LEAKS_TABLE);
+        mDB.execSQL("DROP TABLE IF EXISTS " + TABLE_DATA_LEAKS);
+        mDB.execSQL(CREATE_DATA_LEAKS_TABLE);
     }
 
-    void resetLocationLeakTable() {
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_LOCATION_LEAKS);
-
-        String CREATE_LOCATION_LEAKS_TABLE = "CREATE TABLE " + TABLE_LOCATION_LEAKS + "("
-                + KEY_ID + " INTEGER PRIMARY KEY," + KEY_NAME + " TEXT,"
-                + KEY_LOCATION + " TEXT, " + KEY_TIME_STAMP + " TEXT" + ")";
-        db.execSQL(CREATE_LOCATION_LEAKS_TABLE);
+    void resetLeakSummaryTable() {
+        mDB.execSQL("DROP TABLE IF EXISTS " + TABLE_LEAK_SUMMARY);
+        mDB.execSQL(CREATE_LEAK_SUMMARY_TABLE);
     }
 
     // Adding new data leak
-    public void addDataLeak(DataLeak leak) {
-        SQLiteDatabase db = this.getWritableDatabase();
-//TODO: app name can be same, but package name is unique, consider change shcema
-        String selection = KEY_NAME + "= '" + leak.getAppName() + "' AND " + KEY_TYPE + "= '" + leak.getLeakType() + "'";
-
-        Cursor cursor = db.query(TABLE_DATA_LEAKS, new String[]{KEY_ID,
-                        KEY_NAME, KEY_TYPE, KEY_FREQUENCY, KEY_TIME_STAMP}, selection,
-                null, null, null, null);
-
-        if (cursor != null) {
-            // if entry for this app exists
-            if (cursor.moveToFirst()) {
-                ContentValues newValues = new ContentValues();
-                int freq = (1 + cursor.getInt(3));
-                newValues.put(KEY_FREQUENCY, freq);
-                String[] args = new String[]{cursor.getString(0)};
-
-                db.update(TABLE_DATA_LEAKS, newValues, KEY_ID + "=?", args);
-            } else {
-                // cursor is empty
-                ContentValues values = new ContentValues();
-                values.put(KEY_NAME, leak.getAppName()); // App Name
-                values.put(KEY_TYPE, leak.getLeakType()); // Leak type
-                values.put(KEY_FREQUENCY, leak.getFrequency()); // Leak counter/frequency
-                values.put(KEY_IGNORE, leak.getIgnore()); // Ignore
-                values.put(KEY_TIME_STAMP, leak.getTimeStamp()); // Leak time stamp
-
-                // Inserting Row
-                db.insert(TABLE_DATA_LEAKS, null, values);
-
-            }
-            cursor.close();
-        }
-        db.close(); // Closing database connection
-    }
-
-    // Adding new data leak
-    public void addLocationLeak(LocationLeak leak) {
-        SQLiteDatabase db = this.getWritableDatabase();
-
+    private void addDataLeak(String packageName, String appName, String category, String type, String content) {
         ContentValues values = new ContentValues();
-        values.put(KEY_NAME, leak.getAppName()); // App Name
-        values.put(KEY_LOCATION, leak.getLocation()); // Leaked location
-        values.put(KEY_TIME_STAMP, leak.getTimeStamp()); // Leak time stamp
+        values.put(KEY_PACKAGE, packageName); // App Name
+        values.put(KEY_NAME, appName); // App Name
+        values.put(KEY_CATEGORY, category);
+        values.put(KEY_TYPE, type); // Leak type
+        values.put(KEY_CONTENT, content);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+        values.put(KEY_TIME_STAMP, dateFormat.format(new Date())); // Leak time stamp
 
         // Inserting Row
-        db.insert(TABLE_LOCATION_LEAKS, null, values);
-
-        db.close(); // Closing database connection
+        mDB.insert(TABLE_DATA_LEAKS, null, values);
     }
 
-    // Getting single leak
-    @Nullable
-    public DataLeak getLeak(int id) {
-        DataLeak leak = null;
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor cursor = db.query(TABLE_DATA_LEAKS, new String[]{KEY_ID,
-                        KEY_NAME, KEY_TYPE, KEY_FREQUENCY, KEY_IGNORE, KEY_TIME_STAMP}, KEY_ID + "=?",
-                new String[]{String.valueOf(id)}, null, null, null, null);
-        if (cursor != null) {
-            if (cursor.moveToFirst()) {
-                leak = new DataLeak(cursor.getInt(0),
-                        cursor.getString(1), cursor.getString(2), cursor.getInt(3), cursor.getString(5));
-                leak.setIgnore(cursor.getInt(4));
-            }
-            cursor.close();
-        }
-        db.close();
-        // return leak
-        return leak;
-    }
-
-    // Getting All Data Leaks for Specific App
-    public List<LocationLeak> getLocationLeaks(String appName) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        List<LocationLeak> leakList = new ArrayList<LocationLeak>();
-
-        Cursor cursor = db.query(TABLE_LOCATION_LEAKS, new String[]{KEY_ID,
-                        KEY_NAME, KEY_LOCATION, KEY_TIME_STAMP}, KEY_NAME + "=?",
-                new String[]{appName}, null, null, null, null);
-
-        if (cursor != null) {
-            // looping through all rows and adding to list
-            if (cursor.moveToFirst()) {
-                do {
-                    LocationLeak leak = new LocationLeak();
-                    //leak.setID(Integer.parseInt(cursor.getString(0)));
-                    leak.setAppName(cursor.getString(1));
-                    leak.setLocation(cursor.getString(2));
-                    leak.setTimeStamp(cursor.getString(3));
-                    // Adding leak to list
-                    leakList.add(leak);
-                } while (cursor.moveToNext());
-            }
-            cursor.close();
-        }
-
-        // return contact list
-        return leakList;
-    }
-
-    // Getting All Data Leaks for Specific App
-    public List<DataLeak> getAppLeaks(String appName) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        List<DataLeak> leakList = new ArrayList<DataLeak>();
-
-        Cursor cursor = db.query(TABLE_DATA_LEAKS, new String[]{KEY_ID,
-                        KEY_NAME, KEY_TYPE, KEY_FREQUENCY, KEY_IGNORE, KEY_TIME_STAMP}, KEY_NAME + "=?",
-                new String[]{appName}, null, null, null, null);
-
-        if (cursor != null) {
-            // looping through all rows and adding to list
-            if (cursor.moveToFirst()) {
-                do {
-                    DataLeak leak = new DataLeak();
-                    leak.setID(cursor.getInt(0));
-                    leak.setAppName(cursor.getString(1));
-                    leak.setLeakType(cursor.getString(2));
-                    leak.setFrequency(cursor.getInt(3));
-                    leak.setIgnore(cursor.getInt(4));
-                    // Adding leak to list
-                    leakList.add(leak);
-                } while (cursor.moveToNext());
-            }
-            cursor.close();
-        }
-        db.close();
-        // return contact list
-        return leakList;
-    }
-
-    // Getting All Data Leaks
-    public List<DataLeak> getAllLeaks() {
-        List<DataLeak> leakList = new ArrayList<DataLeak>();
-        // Select All Query
-        String selectQuery = "SELECT  * FROM " + TABLE_DATA_LEAKS;
-
-        SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery(selectQuery, null);
-
-        if (cursor != null) {
-            // looping through all rows and adding to list
-            if (cursor.moveToFirst()) {
-                do {
-                    DataLeak leak = new DataLeak();
-                    leak.setID(cursor.getInt(0));
-                    leak.setAppName(cursor.getString(1));
-                    leak.setLeakType(cursor.getString(2));
-                    leak.setFrequency(cursor.getInt(3));
-                    leak.setIgnore(cursor.getInt(4));
-                    leak.setTimeStamp(cursor.getString(5));
-                    // Adding leak to list
-                    leakList.add(leak);
-                } while (cursor.moveToNext());
-            }
-            cursor.close();
-        }
-
-        db.close();
-        // return contact list
-        return leakList;
-    }
-
-    // Updating single leak
-    public int updateLeak(DataLeak leak) {
-        SQLiteDatabase db = this.getWritableDatabase();
-
+    private void addLeakSummary(LeakReport rpt) {
         ContentValues values = new ContentValues();
-        values.put(KEY_NAME, leak.getAppName());
-        values.put(KEY_TYPE, leak.getLeakType());
-        values.put(KEY_FREQUENCY, leak.getFrequency());
-        values.put(KEY_IGNORE, leak.getIgnore());
-        values.put(KEY_TIME_STAMP, leak.getTimeStamp());
-
-        // updating row
-        return db.update(TABLE_DATA_LEAKS, values, KEY_ID + " = ?",
-                new String[]{String.valueOf(leak.getID())});
-    }
-
-    // Deleting single leak
-    public void deleteLeak(DataLeak leak) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_DATA_LEAKS, KEY_ID + " = ?",
-                new String[]{String.valueOf(leak.getID())});
-        db.close();
+        values.put(KEY_PACKAGE, rpt.packageName);
+        values.put(KEY_NAME, rpt.appName);
+        values.put(KEY_CATEGORY, rpt.category.name());
+        values.put(KEY_FREQUENCY, 0);
+        values.put(KEY_IGNORE, 0);
+        mDB.insert(TABLE_LEAK_SUMMARY, null, values);
     }
 
 
-    // Getting data leaks Count
-    public int getDataLeaksCount() {
-        String countQuery = "SELECT  * FROM " + TABLE_DATA_LEAKS;
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery(countQuery, null);
-        cursor.close();
-        db.close();
-        // return count
-        return cursor.getCount();
-    }
+    public List<AppSummary> getAllApps() {
+        List<AppSummary> apps = new ArrayList<>();
+        Cursor cursor = mDB.query(TABLE_LEAK_SUMMARY, new String[]{KEY_PACKAGE, KEY_NAME, "SUM(" + KEY_FREQUENCY + ")", "MIN(" + KEY_IGNORE + ")"}, null, null, KEY_PACKAGE + ", " + KEY_NAME, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                do {
+                    AppSummary app = new AppSummary();
+                    app.packageName = cursor.getString(0);
+                    app.appName = cursor.getString(1);
+                    app.totalLeaks = cursor.getInt(2);
+                    app.ignore = cursor.getInt(3);
+                    apps.add(app);
+                } while (cursor.moveToNext());
 
-    public int findNotificationId(String appName, String msg) {
-        List<DataLeak> leakList = getAppLeaks(appName);
-        msg = StringUtil.typeFromMsg(msg);
-        for (int i = 0; i < leakList.size(); i++) {
-            if (leakList.get(i).getLeakType().equals(msg)) {
-                return leakList.get(i).getID();
             }
+            cursor.close();
+        }
+        return apps;
+    }
+
+    public List<CategorySummary> getAppDetail(String packageName) {
+        List<CategorySummary> categories = new ArrayList<>();
+        Cursor cursor = mDB.query(TABLE_LEAK_SUMMARY, new String[]{KEY_ID, KEY_CATEGORY, KEY_FREQUENCY, KEY_IGNORE}, KEY_PACKAGE + "=?", new String[]{packageName}, null, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                do {
+                    int notifyId = cursor.getInt(0);
+                    String category = cursor.getString(1);
+                    int count = cursor.getInt(2);
+                    int ignore = cursor.getInt(3);
+                    categories.add(new CategorySummary(notifyId,category, count, ignore));
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+        return categories;
+    }
+
+
+    public List<DataLeak> getAppLeaks(String packageName, String category) {
+        List<DataLeak> leakList = new ArrayList<DataLeak>();
+        Cursor cursor = mDB.query(TABLE_DATA_LEAKS, new String[]{KEY_TYPE, KEY_CONTENT, KEY_TIME_STAMP}, KEY_PACKAGE + "=? AND " + KEY_CATEGORY + "=?", new String[]{packageName, category}, null, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                do {
+                    DataLeak leak = new DataLeak();
+                    leak.type = cursor.getString(0);
+                    leak.leakContent = cursor.getString(1);
+                    leak.timestamp = cursor.getString(2);
+                    leakList.add(leak);
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+        // return contact list
+        return leakList;
+    }
+
+
+    public int findNotificationId(LeakReport rpt) {
+
+        Cursor cursor = mDB.query(TABLE_LEAK_SUMMARY,
+                new String[]{KEY_ID, KEY_FREQUENCY, KEY_IGNORE},
+                KEY_PACKAGE + "=? AND " + KEY_CATEGORY + "=?",
+                new String[]{rpt.packageName, rpt.category.name()}, null, null, null, null);
+
+        if (cursor != null) {
+            if (!cursor.moveToFirst()) { // this package(app) has no leak of this category previously
+                addLeakSummary(rpt);
+                cursor = mDB.query(TABLE_LEAK_SUMMARY,
+                        new String[]{KEY_ID, KEY_FREQUENCY, KEY_IGNORE},
+                        KEY_PACKAGE + "=? AND " + KEY_CATEGORY + "=?",
+                        new String[]{rpt.packageName, rpt.category.name()}, null, null, null, null);
+            }
+            if (!cursor.moveToFirst()) {
+                Logger.i("DBHandler", "fail to create summary table");
+                cursor.close();
+                return -1;
+            }
+            int notifyId = -1;
+            int frequency = 0;
+            int ignore = 0;
+
+            notifyId = cursor.getInt(0);
+            frequency = cursor.getInt(1);
+            ignore = cursor.getInt(2);
+
+            cursor.close();
+
+            for (LeakInstance li : rpt.leaks) {
+                addDataLeak(rpt.packageName, rpt.appName, rpt.category.name(), li.type, li.content);
+            }
+            //need to update frequency in summary table accordingly
+            // Which row to update, based on the package and category
+            ContentValues values = new ContentValues();
+            values.put(KEY_FREQUENCY, frequency + rpt.leaks.size());
+
+            String selection = KEY_ID + " =?";
+            String[] selectionArgs = {String.valueOf(notifyId)};
+
+            int count = mDB.update(
+                    TABLE_LEAK_SUMMARY,
+                    values,
+                    selection,
+                    selectionArgs);
+
+            if (count == 0) {
+                Logger.i("DBHandler", "fail to update summary table");
+            }
+            return ignore == 1 ? -1 : notifyId;
         }
         return -1;
     }
 
-    public boolean isIgnored(String appName, String msg) {
 
-        List<DataLeak> leakList = getAppLeaks(appName);
-        msg = StringUtil.typeFromMsg(msg);
-        for (int i = 0; i < leakList.size(); i++) {
-            if (leakList.get(i).getLeakType().equals(msg) && leakList.get(i).getIgnore() != 0) {
-                return true;
-            }
-        }
-        return false;
-    }
+    public int findNotificationCounter(int id, String category) {
+        Cursor cursor = mDB.query(TABLE_LEAK_SUMMARY,
+                new String[]{KEY_ID, KEY_FREQUENCY},
+                KEY_ID + "=? AND " + KEY_CATEGORY + "=?",
+                new String[]{String.valueOf(id), category}, null, null, null, null);
 
-    public int findNotificationCounter(String appName, String msg) {
-        List<DataLeak> leakList = getAppLeaks(appName);
-        msg = StringUtil.typeFromMsg(msg);
-        for (int i = 0; i < leakList.size(); i++) {
-            if (leakList.get(i).getLeakType().equals(msg)) {
-                return leakList.get(i).getFrequency();
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                int frequency = cursor.getInt(1);
+                cursor.close();
+                return frequency;
             }
-        }
-        return -1;
-    }
-
-    public int findGeneralNotificationId(String appName) {
-        List<DataLeak> leakList = getAppLeaks(appName);
-        for (int i = 0; i < leakList.size(); i++) {
-            if (leakList.get(i) != null) {
-                return leakList.get(i).getID();
-            }
+            cursor.close();
         }
 
         return -1;
     }
+
+
+    public void setIgnoreApp(String packageName, boolean ignore) {
+        ContentValues values = new ContentValues();
+        values.put(KEY_IGNORE, ignore ? 1 : 0);
+
+        String selection = KEY_PACKAGE + " =?";
+        String[] selectionArgs = {packageName};
+
+        int count = mDB.update(
+                TABLE_LEAK_SUMMARY,
+                values,
+                selection,
+                selectionArgs);
+
+        if (count == 0) {
+            Logger.i("DBHandler", "fail to set ignore for " + packageName);
+        }
+    }
+
+    public void setIgnoreAppCategory(int notifyId,boolean ignore) {
+        ContentValues values = new ContentValues();
+        values.put(KEY_IGNORE, ignore ? 1 : 0);
+
+        String selection = KEY_ID + " =?";
+        String[] selectionArgs = {String.valueOf(notifyId)};
+        int count = mDB.update(
+                TABLE_LEAK_SUMMARY,
+                values,
+                selection,
+                selectionArgs);
+        if (count == 0) {
+            Logger.i("DBHandler", "fail to set ignore for " + notifyId);
+        }
+    }
+
 }

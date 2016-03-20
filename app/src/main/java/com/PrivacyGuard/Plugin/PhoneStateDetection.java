@@ -1,8 +1,8 @@
 package com.PrivacyGuard.Plugin;
 
 import android.content.Context;
+import android.support.annotation.Nullable;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 
 import com.PrivacyGuard.Utilities.HashHelpers;
 
@@ -19,17 +19,24 @@ public class PhoneStateDetection implements IPlugin {
     private final String TAG = PhoneStateDetection.class.getSimpleName();
 
     @Override
-    public String handleRequest(String request) {
-        String ret = "";
+    @Nullable
+    public LeakReport handleRequest(String request) {
+        ArrayList<LeakInstance> leaks = new ArrayList<>();
         for(String key : nameofValue.keySet()) {
-            if (request.contains(key)) ret += nameofValue.get(key) + " ";
+            if (request.contains(key)){
+                leaks.add(new LeakInstance(nameofValue.get(key),key));
+            }
         }
-        if(DEBUG) Log.i(TAG + " request : " + ret + " : " + request.length(), request);
-        return ret == "" ? null : ret + " is leaking";
+        if(leaks.isEmpty()){
+            return null;
+        }
+        LeakReport rpt = new LeakReport(LeakReport.LeakCategory.DEVICE);
+        rpt.addLeaks(leaks);
+        return rpt;
     }
 
     @Override
-    public String handleResponse(String response) {
+    public LeakReport handleResponse(String response) {
         return null;
     }
 
@@ -49,22 +56,22 @@ public class PhoneStateDetection implements IPlugin {
         TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         ArrayList<String> info = new ArrayList<String>();
         String deviceID = telephonyManager.getDeviceId();
-        if(deviceID != null) {
+        if(deviceID != null && deviceID.length() > 0) {
             nameofValue.put(deviceID, "IMEI");
             info.add(deviceID);
         }
         String phoneNumber = telephonyManager.getLine1Number();
-        if(phoneNumber != null) {
+        if(phoneNumber != null && phoneNumber.length() > 0){
             nameofValue.put(phoneNumber, "Phone Number");
             info.add(phoneNumber);
         }
         String subscriberID = telephonyManager.getSubscriberId();
-        if(subscriberID != null) {
+        if(subscriberID != null && subscriberID.length()>0) {
             nameofValue.put(subscriberID, "IMSI");
             info.add(subscriberID);
         }
         String androidId = android.provider.Settings.Secure.getString(context.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-        if(androidId != null) {
+        if(androidId != null && androidId.length()>0) {
             nameofValue.put(androidId, "Android ID");
             info.add(androidId);
         }

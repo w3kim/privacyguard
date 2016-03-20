@@ -24,17 +24,45 @@
     tools:context=".MainActivity"
     android:weightSum="1">
 
-    <Button
+    <ToggleButton
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PrivacyGuard"
+        android:id="@+id/connect_button"
+        android:layout_gravity="center_horizontal" />
+
+    <!-- <Button
         style="@style/item"
         android:id="@+id/connect_button"
         android:text="@string/connect"
-/>
+        /> -->
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Run Asynchronously"
+            android:id="@+id/textView4"
+            android:layout_gravity="start"/>
+
+        <Switch
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/async_switch"
+            android:layout_gravity="end" />
+    </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="@string/data_leakage_frequency"
+        android:text="Apps Leakage"
         android:textStyle="bold"
         android:id="@+id/textView"
         android:layout_marginTop="4dp"
@@ -42,6 +70,7 @@
 
     <ListView android:id="@+id/leaksList"
         android:layout_width="match_parent"
-        android:layout_height="390dp" >
+        android:layout_height="0dp"
+        android:layout_weight="1">
     </ListView>
 </LinearLayout>
