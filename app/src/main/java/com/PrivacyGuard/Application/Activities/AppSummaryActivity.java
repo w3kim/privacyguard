@@ -73,7 +73,7 @@ public class AppSummaryActivity extends Activity {
                 CategorySummary category = (CategorySummary) parent.getItemAtPosition(position);
                 Intent intent;
                 if(category.category.equalsIgnoreCase("location")){
-                    intent = new Intent(AppSummaryActivity.this, DetailsActivity.class);
+                    intent = new Intent(AppSummaryActivity.this, LocationDetailActivity.class);
                 }else{
                     intent = new Intent(AppSummaryActivity.this, DetailActivity.class);
                 }

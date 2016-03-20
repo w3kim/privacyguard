@@ -83,7 +83,7 @@ public class LocationDetailActivity extends Activity implements OnMapReadyCallba
         });
 
 
-        list = (ListView) findViewById(R.id.detail_list);
+        list = (ListView) findViewById(R.id.location_list);
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -97,25 +97,13 @@ public class LocationDetailActivity extends Activity implements OnMapReadyCallba
                     googleMap.moveCamera(CameraUpdateFactory.newLatLng(loc));
 
                     // Setting the zoom level in the map on last point
-                    googleMap.animateCamera(CameraUpdateFactory.zoomTo(Float.parseFloat("5")));
+                    googleMap.animateCamera(CameraUpdateFactory.zoomTo(Float.parseFloat("15")));
                 }
             }
         });
 
-
-        //TODO: google bug on map V2 https://code.google.com/p/gmaps-api-issues/issues/detail?id=9021
-        googleMap = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
-        googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-        googleMap.setMyLocationEnabled(true);
-
-        //MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
-        //mapFragment.getMapAsync(this);
-
-
-        //googleMap.setMyLocationEnabled(true);
-
-
-
+        MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
 
     }
 
@@ -147,7 +135,10 @@ public class LocationDetailActivity extends Activity implements OnMapReadyCallba
 
     @Override
     public void onMapReady(GoogleMap map) {
+        map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        map.setMyLocationEnabled(true);
         map.clear();
+
         for(int i = 0; i < adapter.getCount(); i++){
             DataLeak leak = (DataLeak) adapter.getItem(i);
             String location = leak.leakContent;
@@ -167,6 +158,7 @@ public class LocationDetailActivity extends Activity implements OnMapReadyCallba
                 map.addMarker(markerOptions);
             }
         }
+        googleMap = map;
     }
 
     @Override
