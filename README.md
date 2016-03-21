@@ -15,34 +15,9 @@
 4. Change the memory limit of AVD emulator to that of HAXM (1 GB) for emulator to work:	[Stackoverflow](http://stackoverflow.com/questions/21031903/how-to-fix-hax-is-not-working-and	-emulator-runs-in-emulation-mode)
 5. Imported project from local repo
 
-
-## ToDo List
-- Improve logging practice
-- Social Media integration (be able to share leakage statistics)
-- OnResume/OnStop as well as testing app life cycle/corner cases (force stop, etc.)
-- Stress testing (ensure VPN does not cause performance issues
-- User studies to gain feedback/Tweaks to front facing UI (increased height for table rows, icons, etc.)
-- Rating system which associates each app with a five star rating based on leakage history/ show star rating below app icons on phone
-- Allow an option for the user to share statistics with us so overall stats on apps can be aggregated
-- Potentially display leakage stats as they become more complex in graphical form
-- Test on multiple OS versions, and look into new features offered by 5.x and 6.x
-
-Code Documentation:
-MySocketForwarder.java
-	- run invokes vpnService.notify which seems to generate the notifications
-	- notify method defined in MyVpnService.java
-	- DEBUG = false (and is not used and hence nothing is being logged)
-LocationGuard.java
-	- onCreate sets the content view and sets the OnClickListener for the "connect" button
-
-
-API 23 (6.0):
-	- getActiveNotifications(); // to determine which notifications launched from this app are active
-	- NotificationListenerService?
-
-Renaming Notes:
-Package names have "y59song"?
-Define strings/constants etc. in R.layout xml files?
+## Misc
+SHA1: 58:95:40:B9:31:02:12:93:34:78:0D:ED:C6:8A:A1:3B:66:9A:07:99
+API key: AIzaSyBL9tVkRjRtayPIpBnnri7MfAlka-lkwyU
 
 
 ## FAQ
@@ -124,9 +99,6 @@ Follow Database -> connect to Database -> browse your database file and click ok
 - For details, see this [stackoverflow](http://stackoverflow.com/questions/32798816/unexpected-top-level-exception-com-android-dex-dexexception-multiple-dex-files)
 
 
-## Misc
-SHA1: 58:95:40:B9:31:02:12:93:34:78:0D:ED:C6:8A:A1:3B:66:9A:07:99
-API key: AIzaSyBL9tVkRjRtayPIpBnnri7MfAlka-lkwyU
 
 
 
