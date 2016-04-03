@@ -57,9 +57,11 @@ public class AppSummaryActivity extends Activity {
                 if (isChecked) {
                     // The toggle is enabled
                     db.setIgnoreApp(packageName, true);
+                    ignore = 1;
                 } else {
                     // The toggle is disabled
                     db.setIgnoreApp(packageName, false);
+                    ignore = 0;
                 }
                 db.close();
             }

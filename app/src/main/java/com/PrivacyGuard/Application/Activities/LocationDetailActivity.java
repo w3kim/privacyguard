@@ -74,9 +74,11 @@ public class LocationDetailActivity extends Activity implements OnMapReadyCallba
                 if (isChecked) {
                     // The toggle is enabled
                     db.setIgnoreAppCategory(notifyId, true);
+                    ignore = 1;
                 } else {
                     // The toggle is disabled
                     db.setIgnoreAppCategory(notifyId, false);
+                    ignore = 0;
                 }
                 db.close();
             }

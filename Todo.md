@@ -1,16 +1,15 @@
 
 ## ToDo List
 
-1. Import contact from phone for leak detection
 - Turn on/off VPN (right now only toggle filtering)
 - DB: delete old leaks (maybe configurable?)
 - DB: need to make DBhandler thread safe (since multiple filter threads)
 - Test Async running
-- Test ignoring per app and per category
 - Beta release
 	- description
 	- signed APK
 - setting/about page for async
+- Use string resource instead of constant value
 - Improve logging practice
 - Social Media integration (be able to share leakage statistics)
 - OnResume/OnStop as well as testing app life cycle/corner cases (force stop, etc.)
