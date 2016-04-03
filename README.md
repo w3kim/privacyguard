@@ -18,7 +18,7 @@
 ## Misc
 SHA1: 58:95:40:B9:31:02:12:93:34:78:0D:ED:C6:8A:A1:3B:66:9A:07:99
 API key: AIzaSyBL9tVkRjRtayPIpBnnri7MfAlka-lkwyU
-
+keystore password: privacyguard
 
 ## FAQ
 
