@@ -36,10 +36,17 @@ public class TCPDatagram extends IPPayLoad {
 
   public void debugInfo() {
     //if(header.getDstPort() == 80 || header.getSrcPort() == 80)
-    Logger.d(TAG, "Flag : " + (((TCPHeader) header).getFlag() & 0xFF) + " SrcPort : "
-            + header.getSrcPort() + " DstPort : " + header.getDstPort() + " Seq : " + ((TCPHeader) header).getSeq_num()
-            + " Ack : " + ((TCPHeader) header).getAck_num()
-            + " Data Length : " + dataLength());
+    byte flag = ((TCPHeader)header).getFlag();
+    StringBuffer flags = new StringBuffer();
+    if ((flag & TCPHeader.SYN) != 0) flags.append("SYN|");
+    if ((flag & TCPHeader.FIN) != 0) flags.append("FIN|");
+    if ((flag & TCPHeader.ACK) != 0) flags.append("ACK|");
+    if ((flag & TCPHeader.PSH) != 0) flags.append("PSH|");
+    if ((flag & TCPHeader.RST) != 0) flags.append("RST|");
+    Logger.d(TAG, "Flags=" + flags.toString() + " SrcPort="
+            + header.getSrcPort() + " DstPort=" + header.getDstPort() + " Seq=" + Long.toString(((TCPHeader) header).getSeq_num() & 0xFFFFFFFFL)
+            + " Ack=" + Long.toString(((TCPHeader) header).getAck_num() & 0xFFFFFFFFL)
+            + " Data Length=" + dataLength());
   }
 
   @Override

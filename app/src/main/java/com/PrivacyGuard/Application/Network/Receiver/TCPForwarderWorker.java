@@ -1,6 +1,6 @@
 package com.PrivacyGuard.Application.Network.Receiver;
 
-import com.PrivacyGuard.Application.Network.Forwader.TCPForwarder;
+import com.PrivacyGuard.Application.Network.Forwarder.TCPForwarder;
 import com.PrivacyGuard.Application.Network.LocalServer;
 import com.PrivacyGuard.Application.PrivacyGuard;
 

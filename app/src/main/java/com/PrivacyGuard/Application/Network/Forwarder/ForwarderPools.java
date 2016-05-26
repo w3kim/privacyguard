@@ -17,12 +17,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application.Network.Forwader;
+package com.PrivacyGuard.Application.Network.Forwarder;
 
 import android.util.Pair;
 
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
+import com.PrivacyGuard.Application.Logger;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 public class ForwarderPools {
     private HashMap<Pair<Integer, Byte>, AbsForwarder> portToForwarder;
     private MyVpnService vpnService;
+    private static final String TAG = ForwarderPools.class.getSimpleName();
 
     public ForwarderPools(MyVpnService vpnService) {
         this.vpnService = vpnService;
@@ -40,11 +42,14 @@ public class ForwarderPools {
     }
 
     public AbsForwarder get(int port, byte protocol) {
+        // Using only src port and protocol for key will fail if the same src port is
+        // used for multiple connections to different hosts or dest ports, which is
+        // legitimate for TCP. Does it actually happen on Android?
         Pair<Integer, Byte> key = new Pair<>(port, protocol);
         if (portToForwarder.containsKey(key) && !portToForwarder.get(key).isClosed()) {
             return portToForwarder.get(key);
         } else {
-            AbsForwarder temp = getByProtocol(protocol);
+            AbsForwarder temp = getByProtocol(protocol, port);
             if (temp != null) {
                 temp.open();
                 portToForwarder.put(key, temp);
@@ -53,13 +58,16 @@ public class ForwarderPools {
         }
     }
 
-    private AbsForwarder getByProtocol(byte protocol) {
+    private AbsForwarder getByProtocol(byte protocol, int port) {
         switch (protocol) {
             case IPDatagram.TCP:
-                return new TCPForwarder(vpnService);
+                Logger.d(TAG, "Creating TCP forwarder for src port " + port);
+                return new TCPForwarder(vpnService, port);
             case IPDatagram.UDP:
-                return new UDPForwarder(vpnService);
+                Logger.d(TAG, "Creating UDP forwarder for src port " + port);
+                return new UDPForwarder(vpnService, port);
             default:
+                Logger.d(TAG, "Unknown type of forwarder requested for protocol " + protocol);
                 return null;
         }
     }

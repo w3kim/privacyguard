@@ -4,7 +4,7 @@ import android.util.Log;
 
 import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
-import com.PrivacyGuard.Application.Network.Forwader.MySocketForwarder;
+import com.PrivacyGuard.Application.Network.Forwarder.LocalServerForwarder;
 import com.PrivacyGuard.Application.Network.SSL.SSLSocketBuilder;
 
 import org.sandrop.webscarab.model.ConnectionDescriptor;
@@ -59,7 +59,7 @@ public class LocalServer extends Thread {
         SocketChannel socketChannel = serverSocketChannel.accept();
         Socket socket = socketChannel.socket();
         Logger.d(TAG, "Receiving : " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort());
-        new Thread(new ForwarderHandler(socket)).start();
+        new Thread(new LocalServerHandler(socket)).start();
         Logger.d(TAG, "Not blocked");
       } catch (Exception e) {
         e.printStackTrace();
@@ -68,10 +68,10 @@ public class LocalServer extends Thread {
     Log.d(TAG, "Stop Listening");
   }
 
-  private class ForwarderHandler implements Runnable {
-    private final String TAG = ForwarderHandler.class.getSimpleName();
+  private class LocalServerHandler implements Runnable {
+    private final String TAG = LocalServerHandler.class.getSimpleName();
     private Socket client;
-    public ForwarderHandler(Socket client) {
+    public LocalServerHandler(Socket client) {
       this.client = client;
     }
     @Override
@@ -98,7 +98,7 @@ public class LocalServer extends Thread {
             ssl_client.close();
           }
         }
-        MySocketForwarder.connect(client, target, vpnService);
+        LocalServerForwarder.connect(client, target, vpnService);
       } catch (Exception e) {
         e.printStackTrace();
       }

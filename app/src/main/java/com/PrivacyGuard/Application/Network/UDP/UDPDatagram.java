@@ -25,10 +25,9 @@ public class UDPDatagram extends IPPayLoad {
   }
 
   public void debugInfo() {
-    Log.d(TAG, "Src Port : " + header.getSrcPort());
-    Log.d(TAG, "Dst Port : " + header.getDstPort());
-    Log.d(TAG, "Total Length : " + ((UDPHeader)header).getTotal_length());
-    Log.d(TAG, "Data Length : " + this.dataLength());
-    Log.d(TAG, "Data : " + ByteOperations.byteArrayToString(this.data));
+    Log.d(TAG, "SrcPort=" + header.getSrcPort() + " DstPort=" + header.getDstPort() +
+            " Total Length=" + ((UDPHeader)header).getTotal_length() +
+            " Data Length=" + this.dataLength() +
+            " Data=" + ByteOperations.byteArrayToString(this.data));
   }
 }

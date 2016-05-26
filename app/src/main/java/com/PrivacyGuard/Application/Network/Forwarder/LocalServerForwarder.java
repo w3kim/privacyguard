@@ -17,7 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application.Network.Forwader;
+package com.PrivacyGuard.Application.Network.Forwarder;
 
 
 import com.PrivacyGuard.Application.Logger;
@@ -34,23 +34,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.net.SocketException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
-public class MySocketForwarder extends Thread {
+public class LocalServerForwarder extends Thread {
 
     private static final String TIME_STAMP_FORMAT = "MM-dd HH:mm:ss.SSS";
     private static final String UNKNOWN = "unknown";
-    private static String TAG = MySocketForwarder.class.getSimpleName();
+    private static String TAG = LocalServerForwarder.class.getSimpleName();
     private static boolean EVALUATE = false;
     private static boolean DEBUG = false;
     private static boolean PROTECT = true;
@@ -69,7 +64,7 @@ public class MySocketForwarder extends Thread {
     private ConcurrentLinkedQueue<ByteArray> toFilter = new ConcurrentLinkedQueue<ByteArray>();
     private SocketChannel inChannel, outChannel;
 
-    public MySocketForwarder(Socket inSocket, Socket outSocket, boolean isOutgoing, MyVpnService vpnService) {
+    public LocalServerForwarder(Socket inSocket, Socket outSocket, boolean isOutgoing, MyVpnService vpnService) {
         this.inSocket = inSocket;
         try {
             this.in = inSocket.getInputStream();
@@ -85,7 +80,7 @@ public class MySocketForwarder extends Thread {
         setDaemon(true);
     }
 
-    public MySocketForwarder(SocketChannel in, SocketChannel out, boolean isOutgoing, MyVpnService vpnService) {
+    public LocalServerForwarder(SocketChannel in, SocketChannel out, boolean isOutgoing, MyVpnService vpnService) {
         this.inChannel = in;
         this.outChannel = out;
         this.outgoing = isOutgoing;
@@ -100,8 +95,8 @@ public class MySocketForwarder extends Thread {
         if (clientSocket != null && serverSocket != null && clientSocket.isConnected() && serverSocket.isConnected()) {
             clientSocket.setSoTimeout(0);
             serverSocket.setSoTimeout(0);
-            MySocketForwarder clientServer = new MySocketForwarder(clientSocket, serverSocket, true, vpnService);
-            MySocketForwarder serverClient = new MySocketForwarder(serverSocket, clientSocket, false, vpnService);
+            LocalServerForwarder clientServer = new LocalServerForwarder(clientSocket, serverSocket, true, vpnService);
+            LocalServerForwarder serverClient = new LocalServerForwarder(serverSocket, clientSocket, false, vpnService);
             clientServer.start();
             serverClient.start();
 

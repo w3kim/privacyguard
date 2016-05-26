@@ -17,7 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application.Network.Forwader;
+package com.PrivacyGuard.Application.Network.Forwarder;
 
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
@@ -33,8 +33,10 @@ import java.net.InetAddress;
 public abstract class AbsForwarder {
   protected MyVpnService vpnService;
   protected boolean closed = true;
-  public AbsForwarder(MyVpnService vpnService) {
+  protected int port;
+  public AbsForwarder(MyVpnService vpnService, int port) {
     this.vpnService = vpnService;
+    this.port = port;
   }
 
   public abstract boolean setup(InetAddress srcAddress, int srcPort, InetAddress dstAddress, int dstPort);

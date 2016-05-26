@@ -20,7 +20,7 @@
 package com.PrivacyGuard.Application.Network;
 
 import com.PrivacyGuard.Application.MyVpnService;
-import com.PrivacyGuard.Application.Network.Forwader.ForwarderPools;
+import com.PrivacyGuard.Application.Network.Forwarder.ForwarderPools;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
 
 import java.io.FileDescriptor;

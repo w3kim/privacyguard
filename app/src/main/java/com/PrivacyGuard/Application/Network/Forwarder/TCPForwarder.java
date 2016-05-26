@@ -17,7 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application.Network.Forwader;
+package com.PrivacyGuard.Application.Network.Forwarder;
 
 import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
@@ -27,8 +27,6 @@ import com.PrivacyGuard.Application.Network.Receiver.TCPForwarderWorker;
 import com.PrivacyGuard.Application.Network.TCP.TCPDatagram;
 import com.PrivacyGuard.Application.Network.TCP.TCPHeader;
 import com.PrivacyGuard.Application.Network.TCPConnectionInfo;
-
-import junit.framework.Assert;
 
 import java.net.InetAddress;
 /**
@@ -41,8 +39,8 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     private TCPForwarderWorker receiver;
     private TCPConnectionInfo conn_info;
 
-    public TCPForwarder(MyVpnService vpnService) {
-        super(vpnService);
+    public TCPForwarder(MyVpnService vpnService, int port) {
+        super(vpnService, port);
         status = Status.LISTEN;
     }
 
@@ -239,7 +237,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         status = Status.CLOSED;
         if (receiver != null) receiver.interrupt();
         vpnService.getForwarderPools().release(this);
-        Logger.d(TAG, "Released");
+        Logger.d(TAG, "Releasing TCP forwarder for port " + port);
     }
 
     public enum Status {
