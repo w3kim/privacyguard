@@ -33,7 +33,7 @@ public class IPDatagram {
     IPHeader header = IPHeader.create(packet.array());
     IPPayLoad payLoad;
     if(header.protocol() == TCP) {
-      payLoad = TCPDatagram.create(packet.array(), header.headerLength(), packet.limit());
+      payLoad = TCPDatagram.create(packet.array(), header.headerLength(), packet.limit(), header.getDstAddress());
     } else if(header.protocol() == UDP) {
       payLoad = UDPDatagram.create(Arrays.copyOfRange(packet.array(), header.headerLength(), packet.limit()));
     }

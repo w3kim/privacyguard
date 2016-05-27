@@ -1,21 +1,21 @@
 /*
- * TCP forwarder, implement a simple tcp protocol
- * Copyright (C) 2014  Yihang Song
+* TCP forwarder, implement a simple tcp protocol
+* Copyright (C) 2014  Yihang Song
 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
 
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- */
+* You should have received a copy of the GNU General Public License along
+* with this program; if not, write to the Free Software Foundation, Inc.,
+* 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
 
 package com.PrivacyGuard.Application.Network.Forwarder;
 
@@ -36,7 +36,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     private final String TAG = "TCPForwarder";
     protected Status status;
     protected boolean firstData = true;
-    private TCPForwarderWorker receiver;
+    private TCPForwarderWorker worker;
     private TCPConnectionInfo conn_info;
 
     public TCPForwarder(MyVpnService vpnService, int port) {
@@ -52,22 +52,22 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         Logger.d(TAG, "Listen " + ipDatagram.payLoad().header().getSrcPort() + " : " + ipDatagram.payLoad().header().getDstPort());
         conn_info.reset(ipDatagram);
         conn_info.setup(this);
-        if (!receiver.isValid()) return false;
+        if (!worker.isValid()) return false;
         conn_info.increaseSeq(
-                forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null))
+                forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null, conn_info.getDstAddress()))
         );
         status = Status.SYN_ACK_SENT;
         return true;
     }
 
-  /*
-   * step 1 : reverse the IP header
-   * step 2 : create a new TCP header, set the syn, ack right
-   * step 3 : get the response if necessary
-   * step 4 : combine the response and create a new tcp datagram
-   * step 5 : update the datagram's checksum
-   * step 6 : combine the tcp datagram and the ip datagram, update the ip header
-   */
+/*
+* step 1 : reverse the IP header
+* step 2 : create a new TCP header, set the syn, ack right
+* step 3 : get the response if necessary
+* step 4 : combine the response and create a new tcp datagram
+* step 5 : update the datagram's checksum
+* step 6 : combine the tcp datagram and the ip datagram, update the ip header
+*/
 
     private boolean handle_SYN_ACK_SENT(byte flag) {
         if(flag != TCPHeader.ACK) {
@@ -93,14 +93,14 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         if(rlen > 0) { // send data
             send(ipDatagram.payLoad());
             conn_info.increaseSeq(
-                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null, conn_info.getDstAddress()))
             );
         } else if(flag == TCPHeader.FINACK) { // FIN
             conn_info.increaseSeq(
-                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null, conn_info.getDstAddress()))
             );
             conn_info.increaseSeq(
-                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null))
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null, conn_info.getDstAddress()))
             );
             Logger.d(TAG, "DATA FIN close");
             close(false);
@@ -114,7 +114,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     private boolean handle_HALF_CLOSE_BY_CLIENT(byte flag) {
         assert(flag == TCPHeader.ACK);
         if ((flag != TCPHeader.ACK)) {
-            //TODO: find out why this would happen
+//TODO: find out why this would happen
             Logger.e(TAG, "ACK is 0");
             return false;
         }
@@ -127,7 +127,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     private boolean handle_HALF_CLOSE_BY_SERVER(byte flag, int len) {
         if(flag == TCPHeader.FINACK) {
             conn_info.increaseSeq(
-                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null))
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.ACK), null, conn_info.getDstAddress()))
             );
             status = Status.CLOSED;
             Logger.d(TAG, "HALF_CLOSE_BY_SERVER close");
@@ -146,7 +146,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
             rlen = ipDatagram.payLoad().dataLength();
             if(conn_info == null) conn_info = new TCPConnectionInfo(ipDatagram);
         } else return;
-        //MyLogger.debugInfo(TAG, ((TCPDatagram)ipDatagram.payLoad()).debugInfo());
+//MyLogger.debugInfo(TAG, ((TCPDatagram)ipDatagram.payLoad()).debugInfo());
         switch(status) {
             case LISTEN:
                 Logger.d(TAG, "LISTEN");
@@ -176,15 +176,15 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     }
 
     /*
-     *  methods for AbsForwarder
-     */
+    *  methods for AbsForwarder
+    */
     @Override
     public boolean setup(InetAddress srcAddress, int src_port, InetAddress dstAddress, int dst_port) {
         vpnService.getClientAppResolver().setLocalPortToRemoteMapping(src_port, dstAddress.getHostAddress(), dst_port);
-        receiver = new TCPForwarderWorker(srcAddress, src_port, dstAddress, dst_port, this);
-        if (!receiver.isValid()) {
+        worker = new TCPForwarderWorker(srcAddress, src_port, dstAddress, dst_port, this);
+        if (!worker.isValid()) {
             return false;
-        } else receiver.start();
+        } else worker.start();
         return true;
     }
 
@@ -214,28 +214,28 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     public synchronized void forwardResponse(byte[] response) {
         if (conn_info == null) return;
         conn_info.increaseSeq(
-                forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.DATA), response))
+                forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.DATA), response, conn_info.getDstAddress()))
         );
     }
 
     /*
-     * Methods for ICommunication
-     */
+    * Methods for ICommunication
+    */
     @Override
     public void send(IPPayLoad payLoad) {
         if(isClosed()) {
             status = Status.HALF_CLOSE_BY_SERVER;
             conn_info.increaseSeq(
-                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null))
+                    forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null, conn_info.getDstAddress()))
             );
-        } else receiver.send(payLoad.data());
+        } else worker.send(payLoad.data());
     }
 
     private void close(boolean sendRST) {
         closed = true;
-        if(sendRST) forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.RST), null));
+        if(sendRST) forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.RST), null, conn_info.getDstAddress()));
         status = Status.CLOSED;
-        if (receiver != null) receiver.interrupt();
+        if (worker != null) worker.interrupt();
         vpnService.getForwarderPools().release(this);
         Logger.d(TAG, "Releasing TCP forwarder for port " + port);
     }

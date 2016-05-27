@@ -29,6 +29,8 @@ public class ConnectionInfo {
     return responseTransHeader;
   }
 
+  public InetAddress getDstAddress() { return serverAddress; }
+
   public void reset(IPDatagram ipDatagram) {
     this.clientAddress = ipDatagram.header().getSrcAddress();
     this.serverAddress = ipDatagram.header().getDstAddress();
