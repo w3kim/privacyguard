@@ -22,6 +22,7 @@ package com.PrivacyGuard.Application.Network;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.Forwarder.ForwarderPools;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
+import com.PrivacyGuard.Application.Logger;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -40,6 +41,7 @@ public class TunReadThread extends Thread {
     private final ForwarderPools forwarderPools;
     private final Dispatcher dispatcher;
     private ConcurrentLinkedQueue<IPDatagram> readQueue = new ConcurrentLinkedQueue<IPDatagram>();
+    public final static String TAG = "TunReadThread";
 
     public TunReadThread(FileDescriptor fd, MyVpnService vpnService) {
         localIn = new FileInputStream(fd);
@@ -58,6 +60,7 @@ public class TunReadThread extends Thread {
                 if (localInChannel.read(packet) > 0) {
                     packet.flip();
                     if ((ip = IPDatagram.create(packet)) != null) {
+                        Logger.d(TAG, "receiving: " + ip.debugString());
                         readQueue.offer(ip);
                     }
                 } else {

@@ -58,7 +58,8 @@ public class UDPForwarder extends AbsForwarder implements ICommunication {
         if(closed) return;
         UDPDatagram udpDatagram = (UDPDatagram)ipDatagram.payLoad();
         setup(null, -1, ipDatagram.header().getDstAddress(), ipDatagram.payLoad().getDstPort());
-        udpDatagram.debugInfo(dstAddress);
+        //udpDatagram.debugInfo(dstAddress);
+        Logger.d("UDPForwarder", "forwarding " + udpDatagram.debugString());
         send(udpDatagram);
 
         // May misorder responses when multiple UDP packets are concurrently sent from the
@@ -69,7 +70,8 @@ public class UDPForwarder extends AbsForwarder implements ICommunication {
         byte[] received = receive();
         if(received != null) {
             UDPDatagram response = new UDPDatagram(newUDPHeader, received);
-            response.debugInfo(dstAddress);
+            //response.debugInfo(dstAddress);
+            Logger.d("UDPForwarder", "response is " + response.debugString());
             forwardResponse(newIPHeader, response);
         }
         close();

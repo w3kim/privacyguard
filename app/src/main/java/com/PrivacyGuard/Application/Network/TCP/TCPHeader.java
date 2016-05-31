@@ -42,7 +42,7 @@ public class TCPHeader extends TransportHeader {
     checkSum_size = 2;
     this.data = Arrays.copyOfRange(data, start, 20 + start);
   }
-
+/*
   public static TCPHeader createHeader(TCPHeader origin, int size, byte flag) {
     TCPHeader ret = origin.reverse();
     ret.setSeq_num(origin.getAck_num());
@@ -50,7 +50,6 @@ public class TCPHeader extends TransportHeader {
     ret.setFlag(flag);
     return ret;
   }
-
 
   public static TCPHeader createACK(TCPDatagram tcpDatagram) {
     // set ACK
@@ -76,7 +75,7 @@ public class TCPHeader extends TransportHeader {
     // set DATA
     TCPHeader header = (TCPHeader) tcpDatagram.header();
     return createHeader(header, tcpDatagram.dataLength(), last ? DATA : ACK);
-  }
+  }*/
 
   public int offset() {
     return offset;

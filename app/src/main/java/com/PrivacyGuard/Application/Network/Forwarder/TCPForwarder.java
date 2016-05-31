@@ -46,17 +46,25 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
 
     private boolean handle_LISTEN(IPDatagram ipDatagram, byte flag, int len) {
         if (flag != TCPHeader.SYN) {
+            Logger.d(TAG, "LISTEN: Resetting " + ipDatagram.payLoad().header().getSrcPort() + " : " + ipDatagram.payLoad().header().getDstPort());
             close(true);
             return false;
         }
-        Logger.d(TAG, "Listen " + ipDatagram.payLoad().header().getSrcPort() + " : " + ipDatagram.payLoad().header().getDstPort());
+        Logger.d(TAG, "LISTEN: Accepting " + ipDatagram.payLoad().header().getSrcPort() + " : " + ipDatagram.payLoad().header().getDstPort());
         conn_info.reset(ipDatagram);
         conn_info.setup(this);
-        if (!worker.isValid()) return false;
+        if (!worker.isValid()) {
+            close(true);
+            Logger.d(TAG, "LISTEN: Failed to set up worker");
+            return false;
+        }
+        TCPDatagram response = new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null, conn_info.getDstAddress());
+        Logger.d(TAG, "LISTEN: Responded with " + response.debugString());
         conn_info.increaseSeq(
-                forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null, conn_info.getDstAddress()))
+                forwardResponse(conn_info.getIPHeader(), response)
         );
         status = Status.SYN_ACK_SENT;
+        Logger.d(TAG, "LISTEN: Switched to SYN_ACK_SENT");
         return true;
     }
 
@@ -72,10 +80,11 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     private boolean handle_SYN_ACK_SENT(byte flag) {
         if(flag != TCPHeader.ACK) {
             close(true);
-            Logger.d(TAG, "SYN_ACK_SENT close");
+            Logger.d(TAG, "SYN_ACK_SENT: No ACK received, closing");
             return false;
         }
         status = Status.DATA;
+        Logger.d(TAG, "SYN_ACK_SENT: Switched to DATA");
         return true;
     }
 
@@ -85,7 +94,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         }else{
             assert ((flag & TCPHeader.ACK) == 0);
             if (((flag & TCPHeader.ACK) == 0)) {
-                Logger.e(TAG, "ACK is 0 for Datagram:\nHeader: " + ipDatagram.header().toString() +"\nPayload: "+ipDatagram.payLoad().toString());
+                Logger.e(TAG, "DATA: ACK is 0 for Datagram:\nHeader: " + ipDatagram.header().toString() +"\nPayload: "+ipDatagram.payLoad().toString());
                 return false;
             }
         }
@@ -102,11 +111,11 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
             conn_info.increaseSeq(
                     forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.FINACK), null, conn_info.getDstAddress()))
             );
-            Logger.d(TAG, "DATA FIN close");
+            Logger.d(TAG, "DATA: FIN received, closing");
             close(false);
         } else if((flag & TCPHeader.RST) != 0) { // RST
             close(false);
-            Logger.d(TAG, "DATA RST close");
+            Logger.d(TAG, "DATA: RST received, closing");
         }
         return true;
     }
@@ -146,18 +155,20 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
             rlen = ipDatagram.payLoad().dataLength();
             if(conn_info == null) conn_info = new TCPConnectionInfo(ipDatagram);
         } else return;
-//MyLogger.debugInfo(TAG, ((TCPDatagram)ipDatagram.payLoad()).debugInfo());
+        Logger.d(TAG, "HANDLING: " + ipDatagram.debugString());
+        //ipDatagram.debugInfo();
+        //((TCPDatagram)ipDatagram.payLoad()).debugInfo();
         switch(status) {
             case LISTEN:
-                Logger.d(TAG, "LISTEN");
+                //Logger.d(TAG, "LISTEN");
                 if(!handle_LISTEN(ipDatagram, flag, len)) return;
                 else break;
             case SYN_ACK_SENT:
-                Logger.d(TAG, "SYN_ACK_SENT");
+                //Logger.d(TAG, "SYN_ACK_SENT");
                 if(!handle_SYN_ACK_SENT(flag)) return;
                 else break;
             case DATA:
-                Logger.d(TAG, "DATA");
+                //Logger.d(TAG, "DATA");
                 if(!handle_DATA(ipDatagram, flag, len, rlen)) return;
                 else break;
             case HALF_CLOSE_BY_CLIENT:
@@ -235,7 +246,9 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         closed = true;
         if(sendRST) forwardResponse(conn_info.getIPHeader(), new TCPDatagram(conn_info.getTransHeader(0, TCPHeader.RST), null, conn_info.getDstAddress()));
         status = Status.CLOSED;
-        if (worker != null) worker.interrupt();
+        if (worker != null) {
+            worker.interrupt();
+        }
         vpnService.getForwarderPools().release(this);
         Logger.d(TAG, "Releasing TCP forwarder for port " + port);
     }

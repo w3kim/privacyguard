@@ -26,82 +26,90 @@ import javax.net.ssl.SSLSocketFactory;
  * Created by frank on 2014-06-03.
  */
 public class LocalServer extends Thread {
-  public static final int SSLPort = 443;
-  private static final boolean DEBUG = true;
-  private static final String TAG = LocalServer.class.getSimpleName();
-  public static int port = 12345;
-  private ServerSocketChannel serverSocketChannel;
-  private MyVpnService vpnService;
-  private Set<String> sslPinning = new HashSet<String>();
-  public LocalServer(MyVpnService vpnService) {
-    if(serverSocketChannel == null || !serverSocketChannel.isOpen())
-      try {
-        listen();
-      } catch (IOException e) {
-        if(DEBUG) Log.d(TAG, "Listen error");
-        e.printStackTrace();
-      }
-    this.vpnService = vpnService;
-  }
-
-  private void listen() throws IOException {
-    serverSocketChannel = ServerSocketChannel.open();
-    serverSocketChannel.socket().setReuseAddress(true);
-    serverSocketChannel.socket().bind(null);
-    port = serverSocketChannel.socket().getLocalPort();
-  }
-
-  @Override
-  public void run() {
-    while (!isInterrupted()) {
-      try {
-        Logger.d(TAG, "Accepting");
-        SocketChannel socketChannel = serverSocketChannel.accept();
-        Socket socket = socketChannel.socket();
-        Logger.d(TAG, "Receiving : " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort());
-        new Thread(new LocalServerHandler(socket)).start();
-        Logger.d(TAG, "Not blocked");
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
+    public static final int SSLPort = 443;
+    private static final boolean DEBUG = true;
+    private static final String TAG = LocalServer.class.getSimpleName();
+    public static int port = 12345;
+    private ServerSocketChannel serverSocketChannel;
+    private MyVpnService vpnService;
+    private Set<String> sslPinning = new HashSet<String>();
+    public LocalServer(MyVpnService vpnService) {
+        if(serverSocketChannel == null || !serverSocketChannel.isOpen())
+            try {
+                listen();
+            } catch (IOException e) {
+                if(DEBUG) Log.d(TAG, "Listen error");
+                e.printStackTrace();
+            }
+        this.vpnService = vpnService;
     }
-    Log.d(TAG, "Stop Listening");
-  }
 
-  private class LocalServerHandler implements Runnable {
-    private final String TAG = LocalServerHandler.class.getSimpleName();
-    private Socket client;
-    public LocalServerHandler(Socket client) {
-      this.client = client;
+    private void listen() throws IOException {
+        serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.socket().setReuseAddress(true);
+        serverSocketChannel.socket().bind(null);
+        port = serverSocketChannel.socket().getLocalPort();
     }
+
     @Override
     public void run() {
-      try {
-        ConnectionDescriptor descriptor = vpnService.getClientAppResolver().getClientDescriptorByPort(client.getPort());
-        SocketChannel targetChannel = SocketChannel.open();
-        Socket target = targetChannel.socket();
-        vpnService.protect(target);
-        targetChannel.connect(new InetSocketAddress(descriptor.getRemoteAddress(), descriptor.getRemotePort()));
-        if(descriptor != null && descriptor.getRemotePort() == SSLPort && !sslPinning.contains(descriptor.getRemoteAddress())) {
-          SiteData remoteData = vpnService.getHostNameResolver().getSecureHost(client, descriptor, true);
-          Logger.d(TAG, "Begin Handshake : " + remoteData.tcpAddress + " " + remoteData.name);
-          SSLSocket ssl_client = SSLSocketBuilder.negotiateSSL(client, remoteData, false, vpnService.getSSlSocketFactoryFactory());
-          SSLSession session = ssl_client.getSession();
-          Logger.d(TAG, "After Handshake : " + remoteData.tcpAddress + " " + remoteData.name + " " + session + " is valid : " + session.isValid());
-          if(session.isValid()) {
-            client = ssl_client;
-            target = ((SSLSocketFactory) SSLSocketFactory.getDefault()).createSocket(target, descriptor.getRemoteAddress(), descriptor.getRemotePort(), true);
-            SSLSession tmp_session = ((SSLSocket) target).getSession();
-            Logger.d(TAG, "Remote Handshake : " + tmp_session + " is valid : " + tmp_session.isValid());
-          } else {
-            sslPinning.add(descriptor.getRemoteAddress());
-            ssl_client.close();
-          }
+        while (!isInterrupted()) {
+            try {
+                Logger.d(TAG, "Accepting");
+                SocketChannel socketChannel = serverSocketChannel.accept();
+                Socket socket = socketChannel.socket();
+                Logger.d(TAG, "Receiving : " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort());
+                new Thread(new LocalServerHandler(socket)).start();
+                Logger.d(TAG, "Not blocked");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-        LocalServerForwarder.connect(client, target, vpnService);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
+        Log.d(TAG, "Stop Listening");
     }
-  }
+
+    private class LocalServerHandler implements Runnable {
+        private final String TAG = LocalServerHandler.class.getSimpleName();
+        private Socket client;
+        public LocalServerHandler(Socket client) {
+            this.client = client;
+        }
+        @Override
+        public void run() {
+            try {
+                ConnectionDescriptor descriptor = vpnService.getClientAppResolver().getClientDescriptorByPort(client.getPort());
+                SocketChannel targetChannel = SocketChannel.open();
+                Socket target = targetChannel.socket();
+                vpnService.protect(target);
+                targetChannel.connect(new InetSocketAddress(descriptor.getRemoteAddress(), descriptor.getRemotePort()));
+                if(descriptor != null && descriptor.getRemotePort() == SSLPort && !sslPinning.contains(descriptor.getRemoteAddress())) {
+                    SiteData remoteData = vpnService.getHostNameResolver().getSecureHost(client, descriptor, true);
+                    Logger.d(TAG, "Begin Local Handshake : " + remoteData.tcpAddress + " " + remoteData.name);
+                    SSLSocket ssl_client = SSLSocketBuilder.negotiateSSL(client, remoteData, false, vpnService.getSSlSocketFactoryFactory());
+                    SSLSession session = ssl_client.getSession();
+                    Logger.d(TAG, "After Local Handshake : " + remoteData.tcpAddress + " " + remoteData.name + " " + session + " is valid : " + session.isValid());
+                    if(session.isValid()) {
+                        Socket tmp_target = ((SSLSocketFactory) SSLSocketFactory.getDefault()).createSocket(target, descriptor.getRemoteAddress(), descriptor.getRemotePort(), true);
+                        SSLSession tmp_session = ((SSLSocket) tmp_target).getSession();
+                        Logger.d(TAG, "Remote Handshake : " + tmp_session + " is valid : " + tmp_session.isValid());
+                        if(tmp_session.isValid()){
+                            client = ssl_client;
+                            target = tmp_target;
+                        }
+                        else {
+                            sslPinning.add(descriptor.getRemoteAddress());
+                            ssl_client.close();
+                            tmp_target.close();
+                        }
+                    } else {
+                        sslPinning.add(descriptor.getRemoteAddress());
+                        ssl_client.close();
+                    }
+                }
+                LocalServerForwarder.connect(client, target, vpnService);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
