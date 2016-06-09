@@ -27,6 +27,8 @@ import com.PrivacyGuard.Application.Logger;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Created by frank on 2014-04-01.
@@ -42,11 +44,16 @@ public class ForwarderPools {
     }
 
     public AbsForwarder get(int port, byte protocol) {
+
+        releaseExpiredForwarders();
+
         // Using only src port and protocol for key will fail if the same src port is
         // used for multiple connections to different hosts or dest ports, which is
         // legitimate for TCP. Does it actually happen on Android?
         Pair<Integer, Byte> key = new Pair<>(port, protocol);
-        if (portToForwarder.containsKey(key) && !portToForwarder.get(key).isClosed()) {
+        if (portToForwarder.containsKey(key)) { //&& !portToForwarder.get(key).isClosed()) {
+            // if forwarder is closed, packet will be discarded; don't create a new forwarder
+            // since packet is likely for old connection
             return portToForwarder.get(key);
         } else {
             AbsForwarder temp = getByProtocol(protocol, port);
@@ -55,6 +62,18 @@ public class ForwarderPools {
                 portToForwarder.put(key, temp);
             }
             return temp;
+        }
+    }
+
+    void releaseExpiredForwarders() {
+        Iterator it = portToForwarder.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            AbsForwarder fw = (AbsForwarder)pair.getValue();
+            if (fw.hasExpired()) {
+                Logger.d(TAG, "Forwarder released for port " + fw.getPort());
+                it.remove(); // avoids a ConcurrentModificationException
+            }
         }
     }
 

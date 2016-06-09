@@ -38,6 +38,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     protected boolean firstData = true;
     private TCPForwarderWorker worker;
     private TCPConnectionInfo conn_info;
+    protected long releaseTime;
 
     public TCPForwarder(MyVpnService vpnService, int port) {
         super(vpnService, port);
@@ -55,7 +56,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         conn_info.setup(this);
         if (!worker.isValid()) {
             close(true);
-            Logger.d(TAG, "LISTEN: Failed to set up worker");
+            Logger.d(TAG, "LISTEN: Failed to set up worker for " + ipDatagram.payLoad().header().getDstPort());
             return false;
         }
         TCPDatagram response = new TCPDatagram(conn_info.getTransHeader(len, TCPHeader.SYNACK), null, conn_info.getDstAddress());
@@ -79,8 +80,8 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
 
     private boolean handle_SYN_ACK_SENT(byte flag) {
         if(flag != TCPHeader.ACK) {
-            close(true);
-            Logger.d(TAG, "SYN_ACK_SENT: No ACK received, closing");
+            Logger.d(TAG, "SYN_ACK_SENT: No ACK received, ignored");
+            // don't close since sometimes we get multiple duplicate SYNs
             return false;
         }
         status = Status.DATA;
@@ -93,7 +94,7 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
             firstData = false;
         }else{
             assert ((flag & TCPHeader.ACK) == 0);
-            if (((flag & TCPHeader.ACK) == 0)) {
+            if (((flag & TCPHeader.ACK) == 0) && ((flag & TCPHeader.RST) == 0)) {
                 Logger.e(TAG, "DATA: ACK is 0 for Datagram:\nHeader: " + ipDatagram.header().toString() +"\nPayload: "+ipDatagram.payLoad().toString());
                 return false;
             }
@@ -249,8 +250,15 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         if (worker != null) {
             worker.interrupt();
         }
-        vpnService.getForwarderPools().release(this);
-        Logger.d(TAG, "Releasing TCP forwarder for port " + port);
+        // don't release this forwarder right away since we may see more packets for this connection, which would then unnecessarily
+        // re-create this forwarder
+        //vpnService.getForwarderPools().release(this);
+        Logger.d(TAG, "Preparing for release of TCP forwarder for port " + port);
+        releaseTime = System.currentTimeMillis() + 60000;
+    }
+
+    public boolean hasExpired() {
+        return closed && releaseTime < System.currentTimeMillis();
     }
 
     public enum Status {

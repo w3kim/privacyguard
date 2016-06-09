@@ -89,17 +89,17 @@ public class LocalServer extends Thread {
                     SSLSession session = ssl_client.getSession();
                     Logger.d(TAG, "After Local Handshake : " + remoteData.tcpAddress + " " + remoteData.name + " " + session + " is valid : " + session.isValid());
                     if(session.isValid()) {
-                        Socket tmp_target = ((SSLSocketFactory) SSLSocketFactory.getDefault()).createSocket(target, descriptor.getRemoteAddress(), descriptor.getRemotePort(), true);
-                        SSLSession tmp_session = ((SSLSocket) tmp_target).getSession();
+                        Socket ssl_target = ((SSLSocketFactory) SSLSocketFactory.getDefault()).createSocket(target, descriptor.getRemoteAddress(), descriptor.getRemotePort(), true);
+                        SSLSession tmp_session = ((SSLSocket) ssl_target).getSession();
                         Logger.d(TAG, "Remote Handshake : " + tmp_session + " is valid : " + tmp_session.isValid());
                         if(tmp_session.isValid()){
                             client = ssl_client;
-                            target = tmp_target;
+                            target = ssl_target;
                         }
                         else {
                             sslPinning.add(descriptor.getRemoteAddress());
                             ssl_client.close();
-                            tmp_target.close();
+                            ssl_target.close();
                         }
                     } else {
                         sslPinning.add(descriptor.getRemoteAddress());

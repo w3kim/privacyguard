@@ -49,11 +49,13 @@ public abstract class AbsForwarder {
     closed = true;
   }
 
+  public int getPort() { return port; }
+
   public boolean isClosed() {
     return closed;
   }
 
-
+  public abstract boolean hasExpired();
 
   public abstract void forwardRequest(IPDatagram ip);
 

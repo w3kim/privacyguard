@@ -128,4 +128,6 @@ public class UDPForwarder extends AbsForwarder implements ICommunication {
         vpnService.getForwarderPools().release(this);
         Logger.d(TAG, "Releasing UDP forwarder for port " + port);
     }
+
+    public boolean hasExpired() { return false; }
 }

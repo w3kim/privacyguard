@@ -100,14 +100,14 @@ public class LocalServerForwarder extends Thread {
             clientServer.start();
             serverClient.start();
 
-            Logger.d(TAG, "Start forwarding");
+            Logger.d(TAG, "Start forwarding for " + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
             while (clientServer.isAlive())
                 clientServer.join();
             while (serverClient.isAlive())
                 serverClient.join();
+            Logger.d(TAG, "Stop forwarding " + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
             clientSocket.close();
             serverSocket.close();
-            Logger.d(TAG, "Stop forwarding");
         } else {
             Logger.d(TAG, "skipping socket forwarding because of invalid sockets");
             if (clientSocket != null && clientSocket.isConnected()) {
