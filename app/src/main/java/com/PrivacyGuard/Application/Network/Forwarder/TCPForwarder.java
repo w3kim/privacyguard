@@ -23,7 +23,6 @@ import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
 import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
-import com.PrivacyGuard.Application.Network.Receiver.TCPForwarderWorker;
 import com.PrivacyGuard.Application.Network.TCP.TCPDatagram;
 import com.PrivacyGuard.Application.Network.TCP.TCPHeader;
 import com.PrivacyGuard.Application.Network.TCPConnectionInfo;
