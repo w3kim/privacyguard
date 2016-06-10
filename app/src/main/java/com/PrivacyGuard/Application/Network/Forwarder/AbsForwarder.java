@@ -19,6 +19,7 @@
 
 package com.PrivacyGuard.Application.Network.Forwarder;
 
+import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
 import com.PrivacyGuard.Application.Network.IP.IPHeader;
@@ -31,42 +32,45 @@ import java.net.InetAddress;
  */
 
 public abstract class AbsForwarder {
-  protected MyVpnService vpnService;
-  protected boolean closed = true;
-  protected int port;
-  public AbsForwarder(MyVpnService vpnService, int port) {
-    this.vpnService = vpnService;
-    this.port = port;
-  }
+    protected MyVpnService vpnService;
+    //protected boolean closed = true;
+    protected int port;
+    public AbsForwarder(MyVpnService vpnService, int port) {
+        this.vpnService = vpnService;
+        this.port = port;
+    }
 
-  public abstract boolean setup(InetAddress srcAddress, int srcPort, InetAddress dstAddress, int dstPort);
+    //public abstract boolean setup(InetAddress srcAddress, int srcPort, InetAddress dstAddress, int dstPort);
 
-  public void open() {
-    closed = false;
-  }
+    //public void open() {
+    //    closed = false;
+    //}
 
-  public void close() {
-    closed = true;
-  }
+    //public void close() {
+        //closed = true;
+    //}
 
-  public int getPort() { return port; }
+    public abstract void release();
 
-  public boolean isClosed() {
-    return closed;
-  }
+    public int getPort() { return port; }
 
-  public abstract boolean hasExpired();
+    //public boolean isClosed() {
+    //    return closed;
+    //}
 
-  public abstract void forwardRequest(IPDatagram ip);
+    public abstract boolean hasExpired();
 
-  public abstract void forwardResponse(byte[] response);
+    public abstract void forwardRequest(IPDatagram ip);
 
-  public int forwardResponse(IPHeader ipHeader, IPPayLoad datagram) {
-    if(ipHeader == null || datagram == null) return 0;
-    datagram.update(ipHeader); // set the checksum
-    IPDatagram newIpDatagram = new IPDatagram(ipHeader, datagram); // set the ip datagram, will update the length and the checksum
-    vpnService.fetchResponse(newIpDatagram.toByteArray());
-    return datagram.virtualLength();
-  }
+    public abstract void forwardResponse(byte[] response);
+
+    public int forwardResponse(IPHeader ipHeader, IPPayLoad datagram) {
+        if(ipHeader == null || datagram == null) return 0;
+        datagram.update(ipHeader); // set the checksum
+        IPDatagram newIpDatagram = new IPDatagram(ipHeader, datagram); // set the ip datagram, will update the length and the checksum
+        Logger.d("AbsForwarder",newIpDatagram.debugString());
+        vpnService.fetchResponse(newIpDatagram.toByteArray());
+        return datagram.virtualLength();
+    }
 
 }

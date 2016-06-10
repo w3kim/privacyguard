@@ -60,5 +60,8 @@ public abstract class IPHeader extends AbsHeader {
         return IPHeader.create(reverseData);
     }
 
-
+    public void updateSrcAddress(InetAddress srcAddr) {
+        this.srcAddress = srcAddr;
+        System.arraycopy(srcAddr.getAddress(), 0, data, srcIndex, addressSize);
+    }
 }

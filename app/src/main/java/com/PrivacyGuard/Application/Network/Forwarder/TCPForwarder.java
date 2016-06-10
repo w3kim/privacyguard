@@ -31,17 +31,20 @@ import java.net.InetAddress;
 /**
  * Created by frank on 2014-03-27.
  */
-public class TCPForwarder extends AbsForwarder implements ICommunication {
+public class TCPForwarder extends AbsForwarder { //implements ICommunication {
     private final String TAG = "TCPForwarder";
+    private final int WAIT_BEFORE_RELEASE_PERIOD = 60000;
     protected Status status;
     protected boolean firstData = true;
     private TCPForwarderWorker worker;
     private TCPConnectionInfo conn_info;
     protected long releaseTime;
+    private boolean closed = true;
 
     public TCPForwarder(MyVpnService vpnService, int port) {
         super(vpnService, port);
         status = Status.LISTEN;
+        closed = false;
     }
 
     private boolean handle_LISTEN(IPDatagram ipDatagram, byte flag, int len) {
@@ -189,7 +192,6 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     /*
     *  methods for AbsForwarder
     */
-    @Override
     public boolean setup(InetAddress srcAddress, int src_port, InetAddress dstAddress, int dst_port) {
         vpnService.getClientAppResolver().setLocalPortToRemoteMapping(src_port, dstAddress.getHostAddress(), dst_port);
         worker = new TCPForwarderWorker(srcAddress, src_port, dstAddress, dst_port, this);
@@ -199,19 +201,17 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         return true;
     }
 
-    @Override
-    public void open() {
-        if (!closed) return;
-        super.open();
-        status = Status.LISTEN;
-    }
+    //@Override
+    //public void open() {
+     //   if (!closed) return;
+     //   //super.open();
+      //  status = Status.LISTEN;
+    //}
 
-    @Override
-    public void close() {
-        close(false);
-    }
+    //public void close() {
+    //    close(false);
+    //}
 
-    @Override
     public boolean isClosed() {
         return closed;
     }
@@ -232,7 +232,6 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
     /*
     * Methods for ICommunication
     */
-    @Override
     public void send(IPPayLoad payLoad) {
         if(isClosed()) {
             status = Status.HALF_CLOSE_BY_SERVER;
@@ -251,9 +250,13 @@ public class TCPForwarder extends AbsForwarder implements ICommunication {
         }
         // don't release this forwarder right away since we may see more packets for this connection, which would then unnecessarily
         // re-create this forwarder
-        //vpnService.getForwarderPools().release(this);
         Logger.d(TAG, "Preparing for release of TCP forwarder for port " + port);
-        releaseTime = System.currentTimeMillis() + 60000;
+        releaseTime = System.currentTimeMillis() + WAIT_BEFORE_RELEASE_PERIOD;
+    }
+
+    public void release()
+    {
+        Logger.d(TAG, "Releasing TCP forwarder for port " + port);
     }
 
     public boolean hasExpired() {

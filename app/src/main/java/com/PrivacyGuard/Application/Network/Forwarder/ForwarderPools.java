@@ -58,7 +58,6 @@ public class ForwarderPools {
         } else {
             AbsForwarder temp = getByProtocol(protocol, port);
             if (temp != null) {
-                temp.open();
                 portToForwarder.put(key, temp);
             }
             return temp;
@@ -71,7 +70,7 @@ public class ForwarderPools {
             Map.Entry pair = (Map.Entry)it.next();
             AbsForwarder fw = (AbsForwarder)pair.getValue();
             if (fw.hasExpired()) {
-                Logger.d(TAG, "Forwarder released for port " + fw.getPort());
+                fw.release();
                 it.remove(); // avoids a ConcurrentModificationException
             }
         }

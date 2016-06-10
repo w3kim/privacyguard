@@ -41,7 +41,7 @@ public class ConnectionInfo {
     this.responseTransHeader = ipDatagram.payLoad().header().reverse();
   }
 
-  public void setup(AbsForwarder forwarder) {
-    forwarder.setup(clientAddress, clientPort, serverAddress, serverPort);
-  }
+ // public void setup(AbsForwarder forwarder) {
+  //  forwarder.setup(clientAddress, clientPort, serverAddress, serverPort);
+ // }
 }

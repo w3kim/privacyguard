@@ -38,14 +38,18 @@ import java.util.Arrays;
 /**
  * Created by frank on 2014-03-29.
  */
-public class UDPForwarder extends AbsForwarder implements ICommunication {
+public class UDPForwarder extends AbsForwarder { //} implements ICommunication {
     private final String TAG = "UDPForwarder";
     private final int LIMIT = 32767;
-    private InetAddress dstAddress;
-    private int dstPort;
+    private final int WAIT_BEFORE_RELEASE_PERIOD = 60000;
+    //private InetAddress dstAddress;
+    //private int dstPort;
     private DatagramSocket socket;
     private ByteBuffer packet;
     private DatagramPacket response;
+    private UDPForwarderWorker worker;
+    private boolean first = true;
+    protected long releaseTime;
 
     public UDPForwarder(MyVpnService vpnService, int port) {
         super(vpnService, port);
@@ -55,26 +59,18 @@ public class UDPForwarder extends AbsForwarder implements ICommunication {
 
     @Override
     public void forwardRequest(IPDatagram ipDatagram) {
-        if(closed) return;
+        if (first) {
+            setup(ipDatagram);
+            first = false;
+        }
         UDPDatagram udpDatagram = (UDPDatagram)ipDatagram.payLoad();
-        setup(null, -1, ipDatagram.header().getDstAddress(), ipDatagram.payLoad().getDstPort());
+
         //udpDatagram.debugInfo(dstAddress);
         Logger.d("UDPForwarder", "forwarding " + udpDatagram.debugString());
-        send(udpDatagram);
 
-        // May misorder responses when multiple UDP packets are concurrently sent from the
-        // same source port, like concurrent DNS requests. But they should all go to the same
-        // DNS server so reversing the wrong packet shouldn't be a problem.
-        IPHeader newIPHeader = ipDatagram.header().reverse();
-        UDPHeader newUDPHeader = (UDPHeader)udpDatagram.header().reverse();
-        byte[] received = receive();
-        if(received != null) {
-            UDPDatagram response = new UDPDatagram(newUDPHeader, received);
-            //response.debugInfo(dstAddress);
-            Logger.d("UDPForwarder", "response is " + response.debugString());
-            forwardResponse(newIPHeader, response);
-        }
-        close();
+        send(udpDatagram, ipDatagram.header().getDstAddress(), ipDatagram.payLoad().getDstPort());
+
+        releaseTime = System.currentTimeMillis() + WAIT_BEFORE_RELEASE_PERIOD;
     }
 
     @Override
@@ -83,21 +79,19 @@ public class UDPForwarder extends AbsForwarder implements ICommunication {
         Logger.d("UDPForwarder", "Unsolicited packet received: " + response);
     }
 
-    @Override
-    public boolean setup(InetAddress srcAddress, int srcPort, InetAddress dstAddress, int dstPort) {
+    public boolean setup(IPDatagram firstRequest) {
         try {
             socket = new DatagramSocket();
         } catch (IOException e) {
             e.printStackTrace();
         }
         vpnService.protect(socket);
-        this.dstAddress = dstAddress;
-        this.dstPort = dstPort;
+        worker = new UDPForwarderWorker(firstRequest, socket, this);
+        worker.start();
         return true;
     }
 
-    @Override
-    public void send(IPPayLoad payLoad) {
+    public void send(IPPayLoad payLoad, InetAddress dstAddress, int dstPort) {
         try {
             // UDP packets are currently not filtered and don't go through LocalServer
             socket.send(new DatagramPacket(payLoad.data(), payLoad.dataLength(), dstAddress, dstPort));
@@ -106,28 +100,25 @@ public class UDPForwarder extends AbsForwarder implements ICommunication {
         }
     }
 
-    public byte[] receive() {
-        try {
-            packet.clear();
-            socket.setSoTimeout(10000);
-            socket.receive(response);
-        } catch (SocketTimeoutException e) {
-            close();
-            Logger.d("UDPForwarder", "Socket Timeout Exception");
-            return null;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return Arrays.copyOfRange(response.getData(), 0, response.getLength());
-    }
-
     @Override
-    public void close() {
-        if(socket != null && !socket.isClosed()) socket.close();
-        closed = true;
-        vpnService.getForwarderPools().release(this);
+    public void release() {
+        if (worker != null) {
+            worker.interrupt();
+            try {
+                worker.join();
+            }
+            catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        worker = null;
+        if(socket != null && !socket.isClosed()) {
+            socket.close();
+        }
+
         Logger.d(TAG, "Releasing UDP forwarder for port " + port);
     }
 
-    public boolean hasExpired() { return false; }
+    @Override
+    public boolean hasExpired() { return releaseTime < System.currentTimeMillis();}
 }
