@@ -120,7 +120,7 @@ public class LocalServerForwarder extends Thread {
     }
 
     public void run() {
-        FilterThread filterThread;
+        FilterThread filterThread = null;
         if (outgoing) {
             filterThread = new FilterThread();
             if (PrivacyGuard.doFilter && PrivacyGuard.asynchronous) filterThread.start();

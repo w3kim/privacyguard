@@ -29,7 +29,7 @@ public class TCPForwarderWorker extends Thread {
     private Selector selector;
     private TCPForwarder forwarder;
     private ByteBuffer msg = ByteBuffer.allocate(limit);
-    private LinkedBlockingQueue<byte[]> requests = new LinkedBlockingQueue<byte[]>();
+    private LinkedBlockingQueue<byte[]> requests = new LinkedBlockingQueue<>();
     private Sender sender;
 
     public TCPForwarderWorker(InetAddress srcAddress, int src_port, InetAddress dstAddress, int dst_port, TCPForwarder forwarder) {

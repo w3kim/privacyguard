@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by y59song on 06/06/14.
@@ -40,7 +41,7 @@ public class TunReadThread extends Thread {
     private final int LIMIT = 2048;
     private final ForwarderPools forwarderPools;
     private final Dispatcher dispatcher;
-    private ConcurrentLinkedQueue<IPDatagram> readQueue = new ConcurrentLinkedQueue<IPDatagram>();
+    private LinkedBlockingQueue<IPDatagram> readQueue = new LinkedBlockingQueue<>();
     public final static String TAG = "TunReadThread";
 
     public TunReadThread(FileDescriptor fd, MyVpnService vpnService) {
@@ -85,17 +86,14 @@ public class TunReadThread extends Thread {
 
     private class Dispatcher extends Thread {
         public void run() {
-            IPDatagram temp;
-            while (!isInterrupted()) {
-                while ((temp = readQueue.poll()) == null) {
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+            try {
+                while (!isInterrupted()) {
+                    IPDatagram temp = readQueue.take();
+                    int port = temp.payLoad().getSrcPort();
+                    forwarderPools.get(port, temp.header().protocol()).forwardRequest(temp);
                 }
-                int port = temp.payLoad().getSrcPort();
-                forwarderPools.get(port, temp.header().protocol()).forwardRequest(temp);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
