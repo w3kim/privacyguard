@@ -39,6 +39,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 public class LocalServerForwarder extends Thread {
@@ -61,7 +62,7 @@ public class LocalServerForwarder extends Thread {
     private OutputStream out;
     private String destIP;
     private SimpleDateFormat df = new SimpleDateFormat(TIME_STAMP_FORMAT, Locale.CANADA);
-    private ConcurrentLinkedQueue<ByteArray> toFilter = new ConcurrentLinkedQueue<ByteArray>();
+    private LinkedBlockingQueue<ByteArray> toFilter = new LinkedBlockingQueue<>();
     private SocketChannel inChannel, outChannel;
 
     public LocalServerForwarder(Socket inSocket, Socket outSocket, boolean isOutgoing, MyVpnService vpnService) {
@@ -176,19 +177,16 @@ public class LocalServerForwarder extends Thread {
         }
 
         public void run() {
-            ByteArray temp;
-            while (true) {  //TODO: instead of sleep and loop, we might want to use synchronization?
-                while ((temp = toFilter.poll()) == null) {
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+            try {
+                while (!interrupted()) {
+                    ByteArray temp = toFilter.take();
+                    //Log.d("toFilter", "" + toFilter.size());
+                    String msg = new String(temp.data(), 0, temp.length());
+                    byteArrayPool.release(temp);
+                    filter(msg);
                 }
-                //Log.d("toFilter", "" + toFilter.size());
-                String msg = new String(temp.data(), 0, temp.length());
-                byteArrayPool.release(temp);
-                filter(msg);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
