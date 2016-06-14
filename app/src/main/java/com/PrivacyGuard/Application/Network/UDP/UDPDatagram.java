@@ -42,7 +42,7 @@ public class UDPDatagram extends IPPayLoad {
         sb.append(((UDPHeader)header).getTotal_length());
         sb.append(" Data Length=");
         sb.append(this.dataLength());
-        sb.append(" Data=" + ByteOperations.byteArrayToString(this.data));
+        //sb.append(" Data=" + ByteOperations.byteArrayToString(this.data));
         return sb.toString();
     }
 }

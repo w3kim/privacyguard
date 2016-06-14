@@ -64,12 +64,12 @@ public class IPDatagram {
         sb.append(" SrcAddr=");
         sb.append(header.getSrcAddress());
         sb.append(" ");
-        if (payLoad() instanceof TCPDatagram) {
-            sb.append(((TCPDatagram)payLoad()).debugString());
-        }
-        if (payLoad() instanceof UDPDatagram) {
-            sb.append(((UDPDatagram)payLoad()).debugString());
-        }
+        //if (payLoad() instanceof TCPDatagram) {
+        //    sb.append(((TCPDatagram)payLoad()).debugString());
+        //}
+        //if (payLoad() instanceof UDPDatagram) {
+        //    sb.append(((UDPDatagram)payLoad()).debugString());
+        //}
         return sb.toString();
     }
 }
