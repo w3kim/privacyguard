@@ -100,12 +100,12 @@ public class LocalServerForwarder extends Thread {
             clientServer.start();
             serverClient.start();
 
-            Logger.d(TAG, "Start forwarding for " + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
+            Logger.d(TAG, "Start forwarding for " + clientSocket.getInetAddress().getHostAddress()+ ":" + clientSocket.getPort() + "->" + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
             while (clientServer.isAlive())
                 clientServer.join();
             while (serverClient.isAlive())
                 serverClient.join();
-            Logger.d(TAG, "Stop forwarding " + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
+            Logger.d(TAG, "Stop forwarding " + clientSocket.getInetAddress().getHostAddress()+ ":" + clientSocket.getPort() + "->" + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
             clientSocket.close();
             serverSocket.close();
         } else {
@@ -119,16 +119,17 @@ public class LocalServerForwarder extends Thread {
         }
     }
 
-
-
     public void run() {
-        FilterThread filterThread = new FilterThread();
-        if (PrivacyGuard.doFilter && PrivacyGuard.asynchronous) filterThread.start();
+        FilterThread filterThread;
+        if (outgoing) {
+            filterThread = new FilterThread();
+            if (PrivacyGuard.doFilter && PrivacyGuard.asynchronous) filterThread.start();
+        }
         try {
             byte[] buff = new byte[LIMIT];
             int got;
             while ((got = in.read(buff)) > -1) {
-                if (PrivacyGuard.doFilter) {
+                if (PrivacyGuard.doFilter && outgoing) {
                     if (PrivacyGuard.asynchronous) {
                         if (!filterThread.isAlive()) filterThread.start();
                         toFilter.offer(byteArrayPool.getByteArray(buff, got));
@@ -143,8 +144,10 @@ public class LocalServerForwarder extends Thread {
         } catch (Exception ignore) {
             ignore.printStackTrace();
             Logger.d(TAG, "outgoing : " + outgoing);
+            // can happen when app opens a connection and then terminates it right away so
+            // this thread will start running only after a FIN has already been to the server
         }
-        if (PrivacyGuard.asynchronous && filterThread.isAlive()) filterThread.interrupt();
+        if (outgoing && PrivacyGuard.asynchronous && filterThread.isAlive()) filterThread.interrupt();
     }
 
     public class FilterThread extends Thread {

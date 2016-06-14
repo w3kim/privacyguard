@@ -120,6 +120,7 @@ public class TCPForwarder extends AbsForwarder { //implements ICommunication {
             close(false);
             Logger.d(TAG, "DATA: RST received, closing");
         }
+        // if none of the above hold, we have an empty ACK
         return true;
     }
 
