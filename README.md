@@ -1,4 +1,10 @@
 
+## PrivacyGuard 
+
+PrivacyGuard is an Android app that alerts you when one of your apps leaks sensitive information to a remote server. PrivacyGuard does not require a rooted phone. It detects leaks by having the network traffic of all apps go through a VPN. Note that the VPN runs entirely on your phone and your apps' traffic does not get sent to a remote VPN server. PrivacyGuard is described in more detail in this technical paper:
+
+Y. Song and U. Hengartner. [PrivacyGuard: A VPN-based Platform to Detect Information Leakage on Android Devices.](https://dl.acm.org/citation.cfm?id=2808120&CFID=801061730&CFTOKEN=35254378) Proc. of 5th Annual CCS Workshop on Security and Privacy in Smartphones and Mobile Devices (SPSM 2015), Denver, CO, October 2015, pp. 15-26. 
+
 ## Android build process:
 
 1. Download Android Studio
