@@ -77,7 +77,7 @@ public class LocalServerForwarder extends Thread {
         this.destIP = outSocket.getInetAddress().getHostAddress();
         if (outSocket.getPort() == 443) destIP += " (SSL)";
         this.vpnService = vpnService;
-        this.plugins = vpnService.getNewPlugins();
+        if (outgoing) this.plugins = vpnService.getNewPlugins();
         setDaemon(true);
     }
 
@@ -88,7 +88,7 @@ public class LocalServerForwarder extends Thread {
         this.destIP = out.socket().getInetAddress().getHostAddress();
         if (out.socket().getPort() == 443) destIP += " (SSL)";
         this.vpnService = vpnService;
-        this.plugins = vpnService.getNewPlugins();
+        if (outgoing) this.plugins = vpnService.getNewPlugins();
         setDaemon(true);
     }
 

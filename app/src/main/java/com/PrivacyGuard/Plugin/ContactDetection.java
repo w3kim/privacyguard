@@ -21,35 +21,26 @@ import java.util.regex.Pattern;
  */
 public class ContactDetection implements IPlugin {
     private final String TAG = "ContactDetection";
-    //Note: this only works for north america?
-    private final Pattern phone_pattern = Pattern.compile("(\\+?( |-|\\.)?\\d{1,2}( |-|\\.)?)?(\\(?\\d{3}\\)?|\\d{3})( |-|\\.)?(\\d{3}( |-|\\.)?\\d{4})");
-    //Note: there is no good regex that matched all valid email, so use an simple check instead
-    private final Pattern email_pattern = Pattern.compile("[\\S]+@[\\S]+");
     private final boolean DEBUG = false;
 
     private static final HashSet<String> emailList = new HashSet<>();
     private static final HashSet<String> phoneList = new HashSet<>();
-
 
     @Override
     @Nullable
     public LeakReport handleRequest(String request) {
         ArrayList<LeakInstance> leaks = new ArrayList<>();
 
-        //TODO: import contact
-        Matcher phone = phone_pattern.matcher(request);
-        while (phone.find()) {
-            String phoneNumber = phone.group(0).replaceAll("\\D+", "");
-            if(phoneList.contains(phoneNumber)){
-                leaks.add(new LeakInstance("Phone Number", phoneNumber));
+        // don't do regex based search for email/phone since this would assume that a) we can define such regex and
+        // b) app implementators ensure that their phone numbers/email addresses follow these regex
+        for (String phoneNumber: phoneList) {
+            if (request.contains(phoneNumber)) {
+                leaks.add(new LeakInstance("Contact Phone Number", phoneNumber));
             }
         }
-
-        Matcher email = email_pattern.matcher(request);
-        while (email.find()) {
-            String emailAddress = email.group(0);
-            if(emailList.contains(emailAddress)){
-                leaks.add(new LeakInstance("Email",emailAddress ));
+        for (String email: emailList) {
+            if (request.contains(email)) {
+                leaks.add(new LeakInstance("Contact Email Address", email));
             }
         }
 
@@ -92,7 +83,8 @@ public class ContactDetection implements IPlugin {
             if(phones.moveToFirst()){
                 do {
                     String phoneNumber = phones.getString(phoneNumberIdx);
-                    phoneList.add(phoneNumber.replaceAll("\\D+",""));
+                    if (DEBUG) Logger.d(TAG, "contact phone number: " + phoneNumber);
+                    phoneList.add(phoneNumber);
                 } while (phones.moveToNext());
             }
         } catch (Exception e) {
@@ -112,8 +104,9 @@ public class ContactDetection implements IPlugin {
 
             if(emails.moveToFirst()){
                 do {
-                    String phoneNumber = emails.getString(emailAddressIdx);
-                    emailList.add(phoneNumber);
+                    String email = emails.getString(emailAddressIdx);
+                    if (DEBUG) Logger.d(TAG, "contact email address: " + email);
+                    emailList.add(email);
                 } while (emails.moveToNext());
             }
 
