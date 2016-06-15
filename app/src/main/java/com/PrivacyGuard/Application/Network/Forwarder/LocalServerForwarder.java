@@ -170,8 +170,8 @@ public class LocalServerForwarder extends Thread {
                         leak.appName = appName;
                         leak.packageName = packageName;
                         vpnService.notify(leak);
+                        Logger.logTraffic(TAG, packageName, appName, destIP, msg, leak.category.name());
                     }
-                    Logger.logTraffic(TAG, packageName, appName, destIP, msg, leak == null ? null : leak.category.name());
                 }
             }
         }

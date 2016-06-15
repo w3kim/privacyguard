@@ -125,10 +125,10 @@ public class Logger {
         if (BuildConfig.DEBUG) {
 
             //out put to terminal first
-            Log.v(tag, appName + " " + msg);
+           Log.v(tag, appName + " is leaking " + category);
 
             try {
-                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
+                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, false)));
                 out.println("Time : " + df.format(new Date()));
                 out.println(" [ " +  packageName+ " ]  "+ appName);
                 out.println("IP: "+ ip);
