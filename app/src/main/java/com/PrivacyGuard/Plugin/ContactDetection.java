@@ -23,6 +23,8 @@ public class ContactDetection implements IPlugin {
     private final String TAG = "ContactDetection";
     private final boolean DEBUG = false;
 
+    private static boolean init = false;
+
     private static final HashSet<String> emailList = new HashSet<>();
     private static final HashSet<String> phoneList = new HashSet<>();
 
@@ -69,6 +71,11 @@ public class ContactDetection implements IPlugin {
 
     @Override
     public void setContext(Context context) {
+        if (init) return;
+        // TODO: this way we will miss new/updated contacts, but it is more efficient than
+        // re-reading the contacts for each new connection; can we ask to be notified when
+        // there is a new/updated contact?
+        init = true;
         getNumber(context.getContentResolver());
         getEmail(context.getContentResolver());
     }
