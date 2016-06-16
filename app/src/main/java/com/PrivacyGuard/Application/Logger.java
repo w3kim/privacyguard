@@ -120,25 +120,33 @@ public class Logger {
         }
     }
 
-    public static void logTraffic(String tag, String packageName,String appName, String ip, String msg, String category) {
+    public static void logTraffic(String packageName, String appName, String ip, String msg) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 
-            //out put to terminal first
-           Log.v(tag, appName + " is leaking " + category);
-
             try {
-                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, false)));
+                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
+                out.println("=========================");
                 out.println("Time : " + df.format(new Date()));
                 out.println(" [ " +  packageName+ " ]  "+ appName);
                 out.println("IP: "+ ip);
                 out.println("");
                 out.println("Request "+ msg);
                 out.println("");
-                if(category != null){
-                    out.println("Leaking: " + category);
-                    out.println("=========================");
-                }
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void logLeak(String category) {
+         //log network traffic ONLY in debug build
+        if (BuildConfig.DEBUG) {
+
+            try {
+                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
+                out.println("Leaking: " + category);
                 out.close();
             } catch (IOException e) {
                 e.printStackTrace();

@@ -20,6 +20,8 @@
 package com.PrivacyGuard.Application.Network.Forwarder;
 
 
+import android.util.Log;
+
 import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.PrivacyGuard;
@@ -48,15 +50,13 @@ public class LocalServerForwarder extends Thread {
     private static final String UNKNOWN = "unknown";
     private static String TAG = LocalServerForwarder.class.getSimpleName();
     private static boolean EVALUATE = false;
-    private static boolean DEBUG = false;
+    private static boolean DEBUG = true;
     private static boolean PROTECT = true;
     private static int LIMIT = 1368;
     private static ByteArrayPool byteArrayPool = new ByteArrayPool(10, LIMIT);
     private boolean outgoing = false;
     private ArrayList<IPlugin> plugins;
     private MyVpnService vpnService;
-    private String appName = null;
-    private String packageName = null;
     private Socket inSocket;
     private InputStream in;
     private OutputStream out;
@@ -101,16 +101,16 @@ public class LocalServerForwarder extends Thread {
             clientServer.start();
             serverClient.start();
 
-            Logger.d(TAG, "Start forwarding for " + clientSocket.getInetAddress().getHostAddress()+ ":" + clientSocket.getPort() + "->" + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
+            if (DEBUG) Logger.d(TAG, "Start forwarding for " + clientSocket.getInetAddress().getHostAddress()+ ":" + clientSocket.getPort() + "->" + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
             while (clientServer.isAlive())
                 clientServer.join();
             while (serverClient.isAlive())
                 serverClient.join();
-            Logger.d(TAG, "Stop forwarding " + clientSocket.getInetAddress().getHostAddress()+ ":" + clientSocket.getPort() + "->" + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
+            if (DEBUG) Logger.d(TAG, "Stop forwarding " + clientSocket.getInetAddress().getHostAddress()+ ":" + clientSocket.getPort() + "->" + serverSocket.getInetAddress().getHostAddress() + ":" + serverSocket.getPort());
             clientSocket.close();
             serverSocket.close();
         } else {
-            Logger.d(TAG, "skipping socket forwarding because of invalid sockets");
+            if (DEBUG) Logger.d(TAG, "skipping socket forwarding because of invalid sockets");
             if (clientSocket != null && clientSocket.isConnected()) {
                 clientSocket.close();
             }
@@ -154,23 +154,27 @@ public class LocalServerForwarder extends Thread {
     public class FilterThread extends Thread {
         public void filter(String msg) {
             if (PrivacyGuard.doFilter && outgoing) {
+                String appName = null;
+                String packageName = null;
+                ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
+                if (des != null) {
+                    appName = des.getName();
+                    packageName = des.getNamespace();
+                } else {
+                    appName = UNKNOWN;
+                    packageName = UNKNOWN;
+                }
+
+                Logger.logTraffic(packageName, appName, destIP, msg);
+
                 for (IPlugin plugin : plugins) {
                     LeakReport leak = plugin.handleRequest(msg);
                     if (leak != null) {
-                        if (appName == null || packageName == null) {
-                            ConnectionDescriptor des = vpnService.getClientAppResolver().getClientDescriptorBySocket(inSocket);
-                            if (des != null) {
-                                appName = des.getName();
-                                packageName = des.getNamespace();
-                            } else {
-                                appName = UNKNOWN;
-                                packageName = UNKNOWN;
-                            }
-                        }
                         leak.appName = appName;
                         leak.packageName = packageName;
                         vpnService.notify(leak);
-                        Logger.logTraffic(TAG, packageName, appName, destIP, msg, leak.category.name());
+                        if (DEBUG) Logger.v(TAG, appName + " is leaking " + leak.category.name());
+                        Logger.logLeak(leak.category.name());
                     }
                 }
             }
