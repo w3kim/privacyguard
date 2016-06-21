@@ -19,7 +19,7 @@ public class PrivacyGuard extends Application {
     public final static String EXTRA_SIZE = "PrivacyGuard.SIZE";
     public final static String EXTRA_DATE_FORMAT = "PrivacyGuard.DATE";
     public static boolean doFilter = true;
-    public static boolean asynchronous = false;
+    public static boolean asynchronous = true;
     public static int tcpForwarderWorkerRead = 0;
     public static int tcpForwarderWorkerWrite = 0;
     public static int socketForwarderWrite = 0;
