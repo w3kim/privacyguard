@@ -30,20 +30,21 @@ public class LocationDetection implements IPlugin {
     @Nullable
     public LeakReport handleRequest(String requestStr) {
         for (Location loc : mLocations.values()) {
-            double latD = Math.round(loc.getLatitude() * 10) / 10.0;
-            double lonD = Math.round(loc.getLongitude() * 10) / 10.0;
-            String latS = "" + latD, lonS = "" + lonD;
-            if ((requestStr.contains(latS) && requestStr.contains(lonS)) || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
-                LeakReport rpt = new LeakReport(LeakCategory.LOCATION);
-                rpt.addLeak(new LeakInstance("location", latS + ":" + lonS));
-                return rpt;
-            }
+            //double latD = Math.round(loc.getLatitude() * 10) / 10.0;
+            //double lonD = Math.round(loc.getLongitude() * 10) / 10.0;
+            //String latS = String.valueOf(latD);
+            //String lonS = String.valueOf(lonD);
+            //if ((requestStr.contains(latS) && requestStr.contains(lonS)) || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
+            //    LeakReport rpt = new LeakReport(LeakCategory.LOCATION);
+            //    rpt.addLeak(new LeakInstance("location", latS + ":" + lonS));
+            //    return rpt;
+            //}
 
-            latD = ((int) (loc.getLatitude() * 10)) / 10.0;
-            lonD = ((int) (loc.getLongitude() * 10)) / 10.0;
-            latS = "" + latD;
-            lonS = "" + lonD;
-            if ((requestStr.contains(latS) && requestStr.contains(lonS)) || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
+            double latD = ((int) (loc.getLatitude() * 10)) / 10.0;
+            double lonD = ((int) (loc.getLongitude() * 10)) / 10.0;
+            String latS = String.valueOf(latD);
+            String lonS = String.valueOf(lonD);
+            if ((requestStr.contains(latS) && requestStr.contains(lonS))) {// || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
                 LeakReport rpt = new LeakReport(LeakCategory.LOCATION);
                 rpt.addLeak(new LeakInstance("location", latS + ":" + lonS));
                 return rpt;
@@ -99,7 +100,9 @@ public class LocationDetection implements IPlugin {
     class LocationUpdateListener implements LocationListener {
         @Override
         public void onLocationChanged(Location loc) {
-            mLocations.put(loc.getProvider(), loc);
+            synchronized (lock) {
+                mLocations.put(loc.getProvider(), loc);
+            }
             Logger.logLastLocation(loc);
         }
 
