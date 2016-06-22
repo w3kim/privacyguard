@@ -154,7 +154,7 @@ public class Logger {
         }
     }
 
-    public static void logLastLocations(HashMap<String, Location> locations, boolean firstTime) {
+    public static void logLastLocations(Map<String, Location> locations, boolean firstTime) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 
