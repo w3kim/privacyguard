@@ -27,11 +27,11 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.security.KeyChain;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.CompoundButton;
 import android.widget.ListView;
-import android.widget.Switch;
 import android.widget.ToggleButton;
 
 import com.PrivacyGuard.Application.Database.AppSummary;
@@ -39,12 +39,19 @@ import com.PrivacyGuard.Application.Database.DatabaseHandler;
 import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.PrivacyGuard;
+import com.PrivacyGuard.Plugin.KeywordDetection;
 import com.PrivacyGuard.Utilities.CertificateManager;
+import com.PrivacyGuard.Utilities.FileChooser;
+import com.PrivacyGuard.Utilities.FileUtils;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Scanner;
 
 import javax.security.cert.CertificateEncodingException;
 
@@ -77,31 +84,6 @@ public class MainActivity extends Activity {
 
         setContentView(R.layout.activity_main);
         buttonConnect = (ToggleButton) findViewById(R.id.connect_button);
-        buttonConnect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    PrivacyGuard.doFilter = true;
-                    Logger.i(TAG, "filter on");
-                } else {
-                    PrivacyGuard.doFilter = false;
-                    Logger.i(TAG, "filter off");
-                }
-            }
-        });
-
-        //asyncSwitch = (Switch) findViewById(R.id.async_switch);
-        //asyncSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-        //    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        //       if (isChecked) {
-        //            PrivacyGuard.asynchronous = true;
-        //            Logger.i(TAG, "asynchronous on");
-        //        } else {
-        //            PrivacyGuard.asynchronous = false;
-        //            Logger.i(TAG, "asynchronous off");
-        //        }
-        //    }
-        //});
-
         listLeak = (ListView) findViewById(R.id.leaksList);
     }
 
@@ -109,14 +91,10 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
 
-        if (!MyVpnService.isRunning()) {
-            startVPN();
+        if (PrivacyGuard.doFilter) {
+            buttonConnect.setChecked(true);
         }
-if(PrivacyGuard.doFilter){
-    buttonConnect.setChecked(true);
-}
         populateLeakList();
-
     }
 
     /**
@@ -206,6 +184,40 @@ if(PrivacyGuard.doFilter){
             startActivityForResult(intent, 0);
         } else {
             onActivityResult(0, RESULT_OK, null);
+        }
+    }
+
+    private void stopVPN() {
+        // w3kim: MyVpnService does not properly respond to stop signal
+        stopService(new Intent(this, MyVpnService.class));
+    }
+
+    public void updateFilterKeywords(View view) {
+        new FileChooser(this).setFileListener(new FileChooser.FileSelectedListener() {
+            @Override
+            public void fileSelected(final File file) {
+                Log.e(TAG, file.getAbsolutePath());
+                File keywords = new File(getFilesDir().getAbsolutePath() + "/keywords.txt");
+                if (keywords.exists()) {
+                    keywords.delete();
+                }
+                FileUtils.copyFile(file, keywords.getAbsolutePath());
+                KeywordDetection.invalidate();
+            }
+        }).showDialog();
+    }
+
+    public void toggleVPN(View view) {
+        ToggleButton toggle = (ToggleButton) view;
+        String value = toggle.getText().toString();
+        if (value.equalsIgnoreCase("on")) {
+            Log.d(TAG, "on");
+            if (!MyVpnService.isRunning()) startVPN();
+            PrivacyGuard.doFilter = true;
+        } else {
+            Log.d(TAG, "off");
+            if (MyVpnService.isRunning()) stopVPN();
+            PrivacyGuard.doFilter = false;
         }
     }
 }

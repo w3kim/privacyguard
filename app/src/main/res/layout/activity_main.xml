@@ -29,13 +29,21 @@
         android:layout_height="wrap_content"
         android:text="PrivacyGuard"
         android:id="@+id/connect_button"
-        android:layout_gravity="center_horizontal" />
+        android:layout_gravity="center_horizontal"
+        android:onClick="toggleVPN"/>
 
     <!-- <Button
         style="@style/item"
         android:id="@+id/connect_button"
         android:text="@string/connect"
         /> -->
+
+    <Button
+        android:text="Update Filter Keywords"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/button"
+        android:onClick="updateFilterKeywords" />
 
     <TextView
         android:layout_width="wrap_content"

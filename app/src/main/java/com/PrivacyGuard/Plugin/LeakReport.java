@@ -11,7 +11,8 @@ public class LeakReport {
     public enum LeakCategory{
         LOCATION,
         CONTACT,
-        DEVICE
+        DEVICE,
+        KEYWORD
     }
 
     public String packageName;

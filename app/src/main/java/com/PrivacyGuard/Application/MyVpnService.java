@@ -32,6 +32,7 @@ import android.support.v4.app.NotificationCompat;
 import com.PrivacyGuard.Application.Activities.AppSummaryActivity;
 import com.PrivacyGuard.Application.Activities.R;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
+import com.PrivacyGuard.Plugin.KeywordDetection;
 import com.PrivacyGuard.Plugin.LeakReport;
 import com.PrivacyGuard.Application.Network.Forwarder.ForwarderPools;
 import com.PrivacyGuard.Application.Network.LocalServer;
@@ -84,6 +85,8 @@ public class MyVpnService extends VpnService implements Runnable {
             LocationDetection.class,
             PhoneStateDetection.class,
             ContactDetection.class,
+            //
+            KeywordDetection.class
     };
     private ArrayList<IPlugin> plugins;
 
