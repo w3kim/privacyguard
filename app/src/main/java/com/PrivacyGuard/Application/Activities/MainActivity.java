@@ -24,8 +24,11 @@ import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.VpnService;
 import android.os.Bundle;
+import android.os.Environment;
 import android.security.KeyChain;
 import android.util.Log;
 import android.view.View;
@@ -43,10 +46,12 @@ import com.PrivacyGuard.Plugin.KeywordDetection;
 import com.PrivacyGuard.Utilities.CertificateManager;
 import com.PrivacyGuard.Utilities.FileChooser;
 import com.PrivacyGuard.Utilities.FileUtils;
+import com.opencsv.CSVWriter;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,6 +71,7 @@ public class MainActivity extends Activity {
     //private Switch asyncSwitch;
     private ListView listLeak;
     private MainListViewAdapter adapter;
+    private DatabaseHandler mDbHandler;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -77,8 +83,8 @@ public class MainActivity extends Activity {
         }
 
 
-        DatabaseHandler db = new DatabaseHandler(this);
-        db.monthlyReset();
+        mDbHandler = new DatabaseHandler(this);
+        mDbHandler.monthlyReset();
 
         installCertificate();
 
@@ -207,6 +213,14 @@ public class MainActivity extends Activity {
         }).showDialog();
     }
 
+    /**
+     * [w3kim@uwaterloo.ca]
+     * Toggle the VPN
+     *
+     * Note that this method does not function as expected since `MyVpnService` does not correc
+     *
+     * @param view
+     */
     public void toggleVPN(View view) {
         ToggleButton toggle = (ToggleButton) view;
         String value = toggle.getText().toString();
@@ -218,6 +232,46 @@ public class MainActivity extends Activity {
             Log.d(TAG, "off");
             if (MyVpnService.isRunning()) stopVPN();
             PrivacyGuard.doFilter = false;
+        }
+    }
+
+    /**
+     * [w3kim@uwaterloo.ca]
+     * Export DB contents to CSV files
+     *
+     * @param view UI view triggering this method
+     */
+    public void exportData(View view) {
+        File exportDir = new File(Environment.getExternalStorageDirectory(), "privacyguard");
+        if (!exportDir.exists()) {
+            exportDir.mkdirs();
+        }
+
+        for (String table : mDbHandler.getTables()) {
+            File file = new File(exportDir,
+                    String.format("pg-export-%s-%s.csv", System.currentTimeMillis(), table));
+            try {
+                file.createNewFile();
+                CSVWriter csvWrite = new CSVWriter(new FileWriter(file));
+                SQLiteDatabase db = mDbHandler.getReadableDatabase();
+                Cursor curCSV = db.rawQuery("SELECT * FROM " + table, null);
+                csvWrite.writeNext(curCSV.getColumnNames());
+                while (curCSV.moveToNext()) {
+                    //Which column you want to exprort
+                    int numColumns = curCSV.getColumnCount();
+                    String[] arrStr = new String[numColumns];
+                    for (int i = 0; i < numColumns; i++) {
+                        arrStr[i] = curCSV.getString(i);
+                    }
+                    csvWrite.writeNext(arrStr);
+                }
+                csvWrite.close();
+                curCSV.close();
+
+                Log.d(TAG, String.format("table '%s' has been exported to '%s'", table, file.getAbsolutePath()));
+            } catch (Exception sqlEx) {
+                Log.e(TAG, sqlEx.getMessage(), sqlEx);
+            }
         }
     }
 }

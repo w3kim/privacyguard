@@ -73,6 +73,10 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         mDB = getReadableDatabase();
     }
 
+    public String[] getTables() {
+        return new String[] { TABLE_DATA_LEAKS, TABLE_LEAK_SUMMARY };
+    }
+
     // Creating Tables
     @Override
     public void onCreate(SQLiteDatabase db) {
