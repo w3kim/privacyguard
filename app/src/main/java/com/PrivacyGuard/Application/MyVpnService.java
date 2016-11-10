@@ -221,11 +221,14 @@ public class MyVpnService extends VpnService implements Runnable {
     // Notification Methods
     ///////////////////////////////////////////////////
 
-
-    public void notify(LeakReport leak) {
+    // w3kim@uwaterloo.ca : added the 1st parameter
+    public void notify(String request, LeakReport leak) {
         //update database
 
         DatabaseHandler db = new DatabaseHandler(this);
+
+        // w3kim@uwaterloo.ca
+        db.addUrlIfAny(leak.appName, leak.packageName, request);
 
         int notifyId = db.findNotificationId(leak);
         if (notifyId < 0) {

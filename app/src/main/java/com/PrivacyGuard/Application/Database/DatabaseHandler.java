@@ -5,6 +5,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
+import android.util.Patterns;
 
 import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Plugin.LeakInstance;
@@ -16,6 +18,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by MAK on 03/11/2015.
@@ -41,9 +46,36 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String KEY_CONTENT = "content";
     private static final String KEY_TIME_STAMP = "time_stamp";
 
-    private static final String KEY_FREQUENCY = "frequency";
-    private static final String KEY_IGNORE = "ignore";
+    // ------------------------------ w3kim@uwaterloo.ca -----------------------------
 
+    private static final String TAG = DatabaseHandler.class.getSimpleName();
+
+    // URL Table Name
+    private static final String TABLE_URL = "urls";
+    // URL Table Column names
+    private static final String KEY_URL_ID = "_id";
+    private static final String KEY_URL_APP_NAME = "app_name";
+    private static final String KEY_URL_PACKAGE = "package_name";
+    private static final String KEY_URL_URL = "url";
+    private static final String KEY_URL_HOST = "host";
+    private static final String KEY_URL_RES = "res";
+    private static final String KEY_URL_QUERY_PARAMS = "query_params";
+
+    private static final String KEY_URL_TIMESTAMP = "_timestamp";
+
+    private static final String CREATE_URL_TABLE = "CREATE TABLE " + TABLE_URL + "("
+            + KEY_URL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+            + KEY_URL_APP_NAME + " TEXT,"
+            + KEY_URL_PACKAGE + " TEXT,"
+            + KEY_URL_URL + " TEXT,"
+            + KEY_URL_HOST + " TEXT,"
+            + KEY_URL_RES + " TEXT,"
+            + KEY_URL_QUERY_PARAMS + " TEXT,"
+            + KEY_URL_TIMESTAMP + " TEXT )";
+    private static final String KEY_FREQUENCY = "frequency";
+
+    // ------------------------------ w3kim@uwaterloo.ca -----------------------------
+    private static final String KEY_IGNORE = "ignore";
     private static final String CREATE_DATA_LEAKS_TABLE = "CREATE TABLE " + TABLE_DATA_LEAKS + "("
             + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
             + KEY_PACKAGE + " TEXT,"
@@ -52,9 +84,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             + KEY_TYPE + " TEXT,"
             + KEY_CONTENT + " TEXT,"
             + KEY_TIME_STAMP + " TEXT" + ")";
-
     private static final String[] DATA_LEAK_TABLE_COLUMNS = new String[]{KEY_ID, KEY_PACKAGE, KEY_NAME, KEY_CATEGORY, KEY_TYPE, KEY_CONTENT, KEY_TIME_STAMP};
-
     private static final String CREATE_LEAK_SUMMARY_TABLE = "CREATE TABLE " + TABLE_LEAK_SUMMARY + "("
             + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
             + KEY_PACKAGE + " TEXT,"
@@ -62,10 +92,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             + KEY_CATEGORY + " TEXT,"
             + KEY_FREQUENCY + " INTEGER,"
             + KEY_IGNORE + " INTEGER" + ")";
-
-    private static final String[] LEAK_SUMMARY_TABLE_COLUMNS = new String[]{KEY_ID, KEY_PACKAGE, KEY_NAME,KEY_CATEGORY, KEY_FREQUENCY, KEY_IGNORE};
-
-
+    private static final String[] LEAK_SUMMARY_TABLE_COLUMNS = new String[]{KEY_ID, KEY_PACKAGE, KEY_NAME, KEY_CATEGORY, KEY_FREQUENCY, KEY_IGNORE};
+    private SimpleDateFormat mDateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
     private SQLiteDatabase mDB;
 
     public DatabaseHandler(Context context) {
@@ -74,7 +102,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public String[] getTables() {
-        return new String[] { TABLE_DATA_LEAKS, TABLE_LEAK_SUMMARY };
+        return new String[]{TABLE_DATA_LEAKS, TABLE_LEAK_SUMMARY, TABLE_URL};
     }
 
     // Creating Tables
@@ -83,6 +111,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         //create table data_leaks
         db.execSQL(CREATE_DATA_LEAKS_TABLE);
         db.execSQL(CREATE_LEAK_SUMMARY_TABLE);
+        // w3kim@uwaterloo.ca
+        db.execSQL(CREATE_URL_TABLE);
     }
 
     // Upgrading database
@@ -91,6 +121,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         // Drop older table if existed
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_DATA_LEAKS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_LEAK_SUMMARY);
+        // w3kim@uwaterloo.ca
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_URL);
         // Create tables again
         onCreate(db);
     }
@@ -135,6 +167,20 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     void resetLeakSummaryTable() {
         mDB.execSQL("DROP TABLE IF EXISTS " + TABLE_LEAK_SUMMARY);
         mDB.execSQL(CREATE_LEAK_SUMMARY_TABLE);
+    }
+
+    // w3kim@uwaterloo.ca
+    private void addUrl(String appName, String packageName, String url, String host, String res, String queryParams) {
+        ContentValues values = new ContentValues();
+        values.put(KEY_URL_PACKAGE, packageName);
+        values.put(KEY_URL_APP_NAME, appName);
+        values.put(KEY_URL_TIMESTAMP, mDateFormat.format(new Date()));
+        values.put(KEY_URL_HOST, host);
+        values.put(KEY_URL_RES, res);
+        values.put(KEY_URL_QUERY_PARAMS, queryParams);
+        values.put(KEY_URL_URL, url);
+
+        mDB.insert(TABLE_URL, null, values);
     }
 
     // Adding new data leak
@@ -193,7 +239,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     String category = cursor.getString(1);
                     int count = cursor.getInt(2);
                     int ignore = cursor.getInt(3);
-                    categories.add(new CategorySummary(notifyId,category, count, ignore));
+                    categories.add(new CategorySummary(notifyId, category, count, ignore));
                 } while (cursor.moveToNext());
             }
             cursor.close();
@@ -221,6 +267,53 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         return leakList;
     }
 
+    private boolean isHttpMethod(String s) {
+        return s.equals("GET")
+                || s.equals("POST")
+                || s.equals("PUT")
+                || s.equals("HEAD")
+                || s.equals("CONNECT")
+                || s.equals("DELETE")
+                || s.equals("OPTIONS");
+    }
+
+    // w3kim@uwaterloo.ca
+    public boolean addUrlIfAny(String appName, String packageName, String request) {
+        if (request == null
+                || request.isEmpty()
+                || !isHttpMethod(request.trim().split("\n")[0].split(" ")[0])) {
+            return false;
+        }
+        String statusLine = null;
+        String hostLine = null;
+        Scanner scanner = new Scanner(request);
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine().trim();
+            if (isHttpMethod(line.split(" ")[0])) {
+                statusLine = line;
+            } else if (line.startsWith("Host")) {
+                hostLine = line;
+            }
+        }
+        if (statusLine != null && hostLine != null) {
+            Matcher matcher = Patterns.WEB_URL.matcher(hostLine);
+            if (matcher.find()) {
+                String[] statusLineTokens = statusLine.split(" ");
+                String resWithParams = statusLineTokens[1];
+
+                int queryParamsStart = resWithParams.indexOf('?');
+                int cut = (queryParamsStart < 0) ? resWithParams.length() : queryParamsStart;
+                String res = resWithParams.substring(0, cut);
+                String queryParams = (queryParamsStart < 0) ? "" : resWithParams.substring(res.length() + 1);
+
+                String host = matcher.group();
+                addUrl(appName, packageName, host + res + '?' + queryParams, host, res, queryParams);
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public int findNotificationId(LeakReport rpt) {
 
@@ -315,7 +408,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
-    public void setIgnoreAppCategory(int notifyId,boolean ignore) {
+    public void setIgnoreAppCategory(int notifyId, boolean ignore) {
         ContentValues values = new ContentValues();
         values.put(KEY_IGNORE, ignore ? 1 : 0);
 

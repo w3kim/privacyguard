@@ -68,7 +68,9 @@ public class KeywordDetection implements IPlugin {
             try {
                 Scanner scanner = new Scanner(new FileInputStream(src));
                 while (scanner.hasNextLine()) {
-                    keywords.add(scanner.nextLine());
+                    String keyword = scanner.nextLine();
+                    if (!keyword.isEmpty())
+                        keywords.add(keyword);
                 }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();

@@ -244,12 +244,15 @@ public class MainActivity extends Activity {
     public void exportData(View view) {
         File exportDir = new File(Environment.getExternalStorageDirectory(), "privacyguard");
         if (!exportDir.exists()) {
-            exportDir.mkdirs();
+            if (!exportDir.mkdirs()) {
+                Log.e(TAG, "cannot create directories: " + exportDir.getAbsolutePath());
+            }
         }
 
+        long timestamp = System.currentTimeMillis();
         for (String table : mDbHandler.getTables()) {
             File file = new File(exportDir,
-                    String.format("pg-export-%s-%s.csv", System.currentTimeMillis(), table));
+                    String.format("pg-export-%s-%s.csv", timestamp, table));
             try {
                 file.createNewFile();
                 CSVWriter csvWrite = new CSVWriter(new FileWriter(file));
