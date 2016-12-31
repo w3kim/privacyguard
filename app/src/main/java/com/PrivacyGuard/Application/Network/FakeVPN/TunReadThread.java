@@ -17,11 +17,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application.Network;
+package com.PrivacyGuard.Application.Network.FakeVPN;
 
-import com.PrivacyGuard.Application.MyVpnService;
 import com.PrivacyGuard.Application.Network.Forwarder.ForwarderPools;
-import com.PrivacyGuard.Application.Network.IP.IPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPDatagram;
 import com.PrivacyGuard.Application.Logger;
 
 import java.io.FileDescriptor;
@@ -29,7 +28,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**

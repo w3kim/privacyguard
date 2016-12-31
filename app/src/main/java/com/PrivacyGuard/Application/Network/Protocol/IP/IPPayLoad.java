@@ -1,6 +1,6 @@
-package com.PrivacyGuard.Application.Network.IP;
+package com.PrivacyGuard.Application.Network.Protocol.IP;
 
-import com.PrivacyGuard.Application.Network.TransportHeader;
+import com.PrivacyGuard.Application.Network.Protocol.TransportHeader;
 import com.PrivacyGuard.Utilities.ByteOperations;
 
 /**

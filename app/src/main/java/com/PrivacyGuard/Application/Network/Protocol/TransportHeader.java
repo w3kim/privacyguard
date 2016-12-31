@@ -1,4 +1,4 @@
-package com.PrivacyGuard.Application.Network;
+package com.PrivacyGuard.Application.Network.Protocol;
 
 /**
  * Created by frank on 2014-03-28.

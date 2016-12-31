@@ -37,7 +37,7 @@ import android.widget.ToggleButton;
 import com.PrivacyGuard.Application.Database.AppSummary;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
 import com.PrivacyGuard.Application.Logger;
-import com.PrivacyGuard.Application.MyVpnService;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
 import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Utilities.CertificateManager;
 

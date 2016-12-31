@@ -1,8 +1,8 @@
-package com.PrivacyGuard.Application.Network;
+package com.PrivacyGuard.Application.Network.Protocol;
 
 import com.PrivacyGuard.Application.Network.Forwarder.TCPForwarder;
-import com.PrivacyGuard.Application.Network.IP.IPDatagram;
-import com.PrivacyGuard.Application.Network.TCP.TCPHeader;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.TCP.TCPHeader;
 
 /**
  * Created by y59song on 16/05/14.

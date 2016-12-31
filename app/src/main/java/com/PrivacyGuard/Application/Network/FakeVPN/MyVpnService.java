@@ -17,7 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application;
+package com.PrivacyGuard.Application.Network.FakeVPN;
 
 import android.app.ActivityManager;
 import android.app.NotificationManager;
@@ -29,16 +29,17 @@ import android.net.VpnService;
 import android.os.ParcelFileDescriptor;
 import android.support.v4.app.NotificationCompat;
 
+import com.PrivacyGuard.Application.ActionReceiver;
 import com.PrivacyGuard.Application.Activities.AppSummaryActivity;
 import com.PrivacyGuard.Application.Activities.R;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
+import com.PrivacyGuard.Application.Logger;
+import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Plugin.LeakReport;
 import com.PrivacyGuard.Application.Network.Forwarder.ForwarderPools;
 import com.PrivacyGuard.Application.Network.LocalServer;
 import com.PrivacyGuard.Application.Network.Resolver.MyClientResolver;
 import com.PrivacyGuard.Application.Network.Resolver.MyNetworkHostNameResolver;
-import com.PrivacyGuard.Application.Network.TunReadThread;
-import com.PrivacyGuard.Application.Network.TunWriteThread;
 import com.PrivacyGuard.Plugin.ContactDetection;
 import com.PrivacyGuard.Plugin.IPlugin;
 import com.PrivacyGuard.Plugin.LocationDetection;
@@ -62,9 +63,11 @@ public class MyVpnService extends VpnService implements Runnable {
     public static final String CertName = "PrivacyGuard_Cert";
     public static final String KeyType = "PKCS12";
     public static final String Password = "";
+
     private static final String TAG = MyVpnService.class.getSimpleName();
     private static final boolean DEBUG = true;
     private static HashMap<String, Integer[]> notificationMap = new HashMap<String, Integer[]>();
+
     //The virtual network interface, get and return packets to it
     private ParcelFileDescriptor mInterface;
     private TunWriteThread writeThread;
