@@ -1,7 +1,10 @@
 
 ## ToDo List
 
-- Turn on/off VPN (right now only toggle filtering)
+- Turn on/off VPN 
+	- ~~service side~~
+	- client side
+		- handle user forbidden permission 
 - DB: delete old leaks (maybe configurable?)
 - DB: need to make DBhandler thread safe (since multiple filter threads)
 - Test Async running
@@ -19,3 +22,4 @@
 - Allow an option for the user to share statistics with us so overall stats on apps can be aggregated
 - Potentially display leakage stats as they become more complex in graphical form
 - Test on multiple OS versions, and look into new features offered by 5.x and 6.x
+- Plugins should be configurable from UI, not hardcoded

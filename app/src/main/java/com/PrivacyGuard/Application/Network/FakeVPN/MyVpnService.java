@@ -26,6 +26,9 @@ import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.net.VpnService;
+import android.os.Binder;
+import android.os.IBinder;
+import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.support.v4.app.NotificationCompat;
 
@@ -51,6 +54,7 @@ import org.sandrop.webscarab.plugin.proxy.SSLSocketFactoryFactory;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -64,7 +68,7 @@ public class MyVpnService extends VpnService implements Runnable {
     public static final String KeyType = "PKCS12";
     public static final String Password = "";
 
-    private static final String TAG = MyVpnService.class.getSimpleName();
+    private static final String TAG = "MyVpnService";
     private static final boolean DEBUG = true;
     private static HashMap<String, Integer[]> notificationMap = new HashMap<String, Integer[]>();
 
@@ -108,23 +112,19 @@ public class MyVpnService extends VpnService implements Runnable {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Logger.d(TAG, "onStartCommand");
         uiThread = new Thread(this);
         uiThread.start();
-        return 0;
+        return START_STICKY_COMPATIBILITY;
+    }
+    @Override
+    public IBinder onBind(Intent intent) {
+        return new MyVpnServiceBinder();
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (mInterface == null) return;
-        try {
-            readThread.interrupt();
-            writeThread.interrupt();
-            localServer.interrupt();
-            mInterface.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void onRevoke() {
+        stop();
     }
 
     @Override
@@ -287,5 +287,47 @@ public class MyVpnService extends VpnService implements Runnable {
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         mNotificationManager.cancel(id);
+    }
+
+
+
+    private  void stop() {
+        if (mInterface == null) return;
+        Logger.d(TAG,"Stopping");
+        try {
+            readThread.interrupt();
+            writeThread.interrupt();
+            localServer.interrupt();
+            mInterface.close();
+        } catch (IOException e) {
+            Logger.e(TAG,e.toString()+"\n"+ Arrays.toString(e.getStackTrace()));
+        }
+        mInterface = null;
+        stopSelf();
+    }
+
+    public void startVPN(Context context) {
+        Intent intent = new Intent(context, MyVpnService.class);
+        context.startService(intent);
+    }
+
+    public void stopVPN() {
+       stop();
+    }
+
+    public class MyVpnServiceBinder extends Binder {
+        public MyVpnService getService() {
+            // Return this instance of MyVpnService so clients can call public methods
+            return MyVpnService.this;
+        }
+
+        @Override
+        protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) {
+            if (code == IBinder.LAST_CALL_TRANSACTION) {
+                onRevoke();
+                return true;
+            }
+            return false;
+        }
     }
 }

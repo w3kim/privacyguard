@@ -20,24 +20,25 @@
 package com.PrivacyGuard.Application.Activities;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ComponentName;
-import android.content.DialogInterface;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.VpnService;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.security.KeyChain;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.CompoundButton;
 import android.widget.ListView;
-import android.widget.Switch;
 import android.widget.ToggleButton;
 
 import com.PrivacyGuard.Application.Database.AppSummary;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
 import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService.MyVpnServiceBinder;
 import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Utilities.CertificateManager;
 
@@ -52,72 +53,84 @@ public class MainActivity extends Activity {
 
     public static final boolean debug = false;
     private static String TAG = "MainActivity";
-    private Intent intent;
     private ArrayList<HashMap<String, String>> list;
 
     private ToggleButton buttonConnect;
-    //private Switch asyncSwitch;
     private ListView listLeak;
     private MainListViewAdapter adapter;
 
+    ServiceConnection mSc;
+    MyVpnService mVPN;
+
+    /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        intent = new Intent(this, MyVpnService.class);
-
-        if (!MyVpnService.isRunning()) {
-            startVPN();
-        }
-
-
-        DatabaseHandler db = new DatabaseHandler(this);
-        db.monthlyReset();
-
-        installCertificate();
-
         setContentView(R.layout.activity_main);
+
         buttonConnect = (ToggleButton) findViewById(R.id.connect_button);
+        listLeak = (ListView) findViewById(R.id.leaksList);
+
+        buttonConnect.setChecked(false);
         buttonConnect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    PrivacyGuard.doFilter = true;
-                    Logger.i(TAG, "filter on");
+                    Logger.d(TAG, "Connect toggled ON");
+                    startVPN();
                 } else {
-                    PrivacyGuard.doFilter = false;
-                    Logger.i(TAG, "filter off");
+                    Logger.d(TAG, "Connect toggled OFF");
+                    stopVPN();
                 }
             }
         });
 
-        //asyncSwitch = (Switch) findViewById(R.id.async_switch);
-        //asyncSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-        //    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        //       if (isChecked) {
-        //            PrivacyGuard.asynchronous = true;
-        //            Logger.i(TAG, "asynchronous on");
-        //        } else {
-        //            PrivacyGuard.asynchronous = false;
-        //            Logger.i(TAG, "asynchronous off");
-        //        }
-        //    }
-        //});
 
-        listLeak = (ListView) findViewById(R.id.leaksList);
+        mSc = new ServiceConnection(){
+
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Logger.d(TAG, "VPN Service connected");
+                mVPN = ((MyVpnServiceBinder)service).getService();
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                Logger.d(TAG, "VPN Service disconnected");
+            }
+        };
+
+        DatabaseHandler db = new DatabaseHandler(this);
+        db.monthlyReset();
+        installCertificate();
+    }
+
+
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Logger.d(TAG, this.getApplicationContext().getPackageCodePath());
+        Intent service = new Intent(this.getApplicationContext(),MyVpnService.class);
+        this.bindService(service, mSc, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        if (!MyVpnService.isRunning()) {
-            startVPN();
-        }
-if(PrivacyGuard.doFilter){
-    buttonConnect.setChecked(true);
-}
         populateLeakList();
 
     }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        //must unbind the service otherwise the ServiceConnection will be leaked.
+        this.unbindService(mSc);
+    }
+
+
 
     /**
      *
@@ -176,36 +189,35 @@ if(PrivacyGuard.doFilter){
         startActivity(intent);
     }
 
+    /** Gets called immediately before onResume() when activity is re-starting */
     @Override
-    // Gets called immediately before onResume() when activity is re-starting
     protected void onActivityResult(int request, int result, Intent data) {
         if (result == RESULT_OK) {
             Logger.d(TAG, "Starting VPN service");
-            ComponentName service = startService(intent);
-            if (service == null) {
-                Logger.w(TAG, "Failed to start VPN service");
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setMessage(R.string.mainActivity_warn_dialog_msg)
-                        .setTitle(R.string.mainActivity_warn_dialog_title)
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                dialog.cancel();
-                            }
-                        });
-                AlertDialog warnDialog = builder.create();
-                warnDialog.show();
-            } else {
-                Logger.d(TAG, "VPN service started");
-            }
+            mVPN.startVPN(this);
         }
     }
 
+
+
     private void startVPN() {
+        /**
+         * prepare() sometimes would misbehave:
+         * https://code.google.com/p/android/issues/detail?id=80074
+         *
+         * need to inform user
+         */
         Intent intent = VpnService.prepare(this);
+        Logger.d(TAG, "VPN prepare done");
         if (intent != null) {
             startActivityForResult(intent, 0);
         } else {
             onActivityResult(0, RESULT_OK, null);
         }
+    }
+
+    private void stopVPN() {
+        Logger.d(TAG, "Stopping VPN service");
+        mVPN.stopVPN();
     }
 }
