@@ -68,8 +68,11 @@ public class MyVpnService extends VpnService implements Runnable {
     public static final String KeyType = "PKCS12";
     public static final String Password = "";
 
+
+
     private static final String TAG = "MyVpnService";
     private static final boolean DEBUG = true;
+    private static boolean running = false;
     private static HashMap<String, Integer[]> notificationMap = new HashMap<String, Integer[]>();
 
     //The virtual network interface, get and return packets to it
@@ -98,16 +101,8 @@ public class MyVpnService extends VpnService implements Runnable {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
     public static boolean isRunning() {
-        //TODO: this actually doesn't detect if user stopped the service
-        ActivityManager activityManager = (ActivityManager) PrivacyGuard.getAppContext().getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningServiceInfo> serviceList = activityManager.getRunningServices(30);
-
-        for (ActivityManager.RunningServiceInfo serviceInfo : serviceList) {
-            if (serviceInfo.service.getClassName().equals(MyVpnService.class.getName()))
-                return true;
-        }
-
-        return false;
+        /** http://stackoverflow.com/questions/600207/how-to-check-if-a-service-is-running-on-android */
+        return running;
     }
 
     @Override
@@ -124,13 +119,24 @@ public class MyVpnService extends VpnService implements Runnable {
 
     @Override
     public void onRevoke() {
+        Logger.d(TAG,"onRevoke");
         stop();
+        super.onRevoke();
     }
 
+
+    @Override
+    public void onDestroy() {
+        Logger.d(TAG,"onDestroy");
+        stop();
+        super.onDestroy();
+
+    }
     @Override
     public void run() {
         if (!(setup_network()))
             return;
+        running = true;
         setup_workers();
         wait_to_close();
     }
@@ -292,6 +298,7 @@ public class MyVpnService extends VpnService implements Runnable {
 
 
     private  void stop() {
+        running = false;
         if (mInterface == null) return;
         Logger.d(TAG,"Stopping");
         try {
@@ -303,7 +310,6 @@ public class MyVpnService extends VpnService implements Runnable {
             Logger.e(TAG,e.toString()+"\n"+ Arrays.toString(e.getStackTrace()));
         }
         mInterface = null;
-        stopSelf();
     }
 
     public void startVPN(Context context) {
@@ -312,7 +318,8 @@ public class MyVpnService extends VpnService implements Runnable {
     }
 
     public void stopVPN() {
-       stop();
+        stop();
+        stopSelf();
     }
 
     public class MyVpnServiceBinder extends Binder {

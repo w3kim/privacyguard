@@ -51,14 +51,16 @@ import javax.security.cert.CertificateEncodingException;
 
 public class MainActivity extends Activity {
 
-    public static final boolean debug = false;
+    //public static final boolean debug = false;
     private static String TAG = "MainActivity";
+    private static final int REQUEST_VPN = 1;
     private ArrayList<HashMap<String, String>> list;
 
     private ToggleButton buttonConnect;
     private ListView listLeak;
     private MainListViewAdapter adapter;
 
+    private boolean bounded = false;
     ServiceConnection mSc;
     MyVpnService mVPN;
 
@@ -71,13 +73,13 @@ public class MainActivity extends Activity {
         buttonConnect = (ToggleButton) findViewById(R.id.connect_button);
         listLeak = (ListView) findViewById(R.id.leaksList);
 
-        buttonConnect.setChecked(false);
         buttonConnect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
+                Logger.d(TAG, "Connect toggled "+isChecked);
+                if (isChecked && ! MyVpnService.isRunning()) {
                     Logger.d(TAG, "Connect toggled ON");
                     startVPN();
-                } else {
+                } else if(!isChecked){
                     Logger.d(TAG, "Connect toggled OFF");
                     stopVPN();
                 }
@@ -85,6 +87,7 @@ public class MainActivity extends Activity {
         });
 
 
+        /** use bound service here because stopservice() doesn't immediately trigger onDestroy of VPN service */
         mSc = new ServiceConnection(){
 
             @Override
@@ -110,15 +113,19 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        Logger.d(TAG, this.getApplicationContext().getPackageCodePath());
-        Intent service = new Intent(this.getApplicationContext(),MyVpnService.class);
-        this.bindService(service, mSc, Context.BIND_AUTO_CREATE);
+        if(!bounded){
+            Intent service = new Intent(this,MyVpnService.class);
+            this.bindService(service, mSc, Context.BIND_AUTO_CREATE);
+            bounded = true;
+        }
+        buttonConnect.setChecked(MyVpnService.isRunning());
+
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
         populateLeakList();
 
     }
@@ -126,8 +133,12 @@ public class MainActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
-        //must unbind the service otherwise the ServiceConnection will be leaked.
-        this.unbindService(mSc);
+        if(bounded){//must unbind the service otherwise the ServiceConnection will be leaked.
+            this.unbindService(mSc);
+            bounded = false;
+        }
+
+
     }
 
 
@@ -192,32 +203,48 @@ public class MainActivity extends Activity {
     /** Gets called immediately before onResume() when activity is re-starting */
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
-        if (result == RESULT_OK) {
-            Logger.d(TAG, "Starting VPN service");
-            mVPN.startVPN(this);
+        if(request == REQUEST_VPN){
+            if (result == RESULT_OK) {
+                Logger.d(TAG, "Starting VPN service");
+                mVPN.startVPN(this);
+            }else{
+                buttonConnect.setChecked(false);    // update UI in case user doesn't give consent to VPN
+            }
         }
+
     }
 
 
 
     private void startVPN() {
+        if(!bounded){
+            Intent service = new Intent(this,MyVpnService.class);
+            this.bindService(service, mSc, Context.BIND_AUTO_CREATE);
+            bounded = true;
+        }
         /**
          * prepare() sometimes would misbehave:
          * https://code.google.com/p/android/issues/detail?id=80074
          *
-         * need to inform user
+         * if this affects our app, we can let vpnservice update main activity for status
+         * http://stackoverflow.com/questions/4111398/notify-activity-from-service
+         *
          */
         Intent intent = VpnService.prepare(this);
         Logger.d(TAG, "VPN prepare done");
         if (intent != null) {
-            startActivityForResult(intent, 0);
+            startActivityForResult(intent, REQUEST_VPN);
         } else {
-            onActivityResult(0, RESULT_OK, null);
+            onActivityResult(REQUEST_VPN, RESULT_OK, null);
         }
     }
 
     private void stopVPN() {
         Logger.d(TAG, "Stopping VPN service");
+        if(bounded){
+            this.unbindService(mSc);
+            bounded = false;
+        }
         mVPN.stopVPN();
     }
 }
