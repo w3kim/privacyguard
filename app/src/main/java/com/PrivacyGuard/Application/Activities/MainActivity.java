@@ -47,11 +47,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import javax.security.cert.Certificate;
 import javax.security.cert.CertificateEncodingException;
 
 public class MainActivity extends Activity {
 
     public static final boolean debug = false;
+    public static final int REQUEST_CERT = 1;
     private static String TAG = "MainActivity";
     private ArrayList<HashMap<String, String>> list;
 
@@ -62,7 +64,9 @@ public class MainActivity extends Activity {
     ServiceConnection mSc;
     MyVpnService mVPN;
 
-    /** Called when the activity is first created. */
+    /**
+     * Called when the activity is first created.
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,12 +89,12 @@ public class MainActivity extends Activity {
         });
 
 
-        mSc = new ServiceConnection(){
+        mSc = new ServiceConnection() {
 
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 Logger.d(TAG, "VPN Service connected");
-                mVPN = ((MyVpnServiceBinder)service).getService();
+                mVPN = ((MyVpnServiceBinder) service).getService();
             }
 
             @Override
@@ -105,13 +109,11 @@ public class MainActivity extends Activity {
     }
 
 
-
-
     @Override
     protected void onStart() {
         super.onStart();
         Logger.d(TAG, this.getApplicationContext().getPackageCodePath());
-        Intent service = new Intent(this.getApplicationContext(),MyVpnService.class);
+        Intent service = new Intent(this.getApplicationContext(), MyVpnService.class);
         this.bindService(service, mSc, Context.BIND_AUTO_CREATE);
     }
 
@@ -129,7 +131,6 @@ public class MainActivity extends Activity {
         //must unbind the service otherwise the ServiceConnection will be leaked.
         this.unbindService(mSc);
     }
-
 
 
     /**
@@ -171,33 +172,38 @@ public class MainActivity extends Activity {
      *
      */
     public void installCertificate() {
-        String Dir = Logger.getDiskCacheDir().getAbsolutePath();
-        try {
-            if (CertificateManager.isCACertificateInstalled(Dir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password))
-                return;
-        } catch (KeyStoreException e) {
-            e.printStackTrace();
-        }
-        CertificateManager.generateCACertificate(Dir, MyVpnService.CAName, MyVpnService.CertName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
+
+        if (CertificateManager.isCACertificateInstalled(MyVpnService.CADir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password.toCharArray()))
+            return;
+
+        //CertificateManager.initiateFactory(MyVpnService.CADir, MyVpnService.CAName, MyVpnService.CertName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
         Intent intent = KeyChain.createInstallIntent();
         try {
-            intent.putExtra(KeyChain.EXTRA_CERTIFICATE, CertificateManager.getCACertificate(Dir, MyVpnService.CAName).getEncoded());
+            Certificate cert = CertificateManager.getCACertificate(MyVpnService.CADir, MyVpnService.CAName);
+            if(cert != null){
+                intent.putExtra(KeyChain.EXTRA_CERTIFICATE, cert.getEncoded());
+                intent.putExtra(KeyChain.EXTRA_NAME, MyVpnService.CAName);
+                startActivityForResult(intent, REQUEST_CERT);
+            }
         } catch (CertificateEncodingException e) {
-            e.printStackTrace();
+            Logger.e(TAG,"Certificate Encoding Error",e);
         }
-        intent.putExtra(KeyChain.EXTRA_NAME, MyVpnService.CAName);
-        startActivity(intent);
+
     }
 
-    /** Gets called immediately before onResume() when activity is re-starting */
+    /**
+     * Gets called immediately before onResume() when activity is re-starting
+     */
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
+        if(request == REQUEST_CERT){    // stub for UI enhancement
+            return;
+        }
         if (result == RESULT_OK) {
             Logger.d(TAG, "Starting VPN service");
             mVPN.startVPN(this);
         }
     }
-
 
 
     private void startVPN() {

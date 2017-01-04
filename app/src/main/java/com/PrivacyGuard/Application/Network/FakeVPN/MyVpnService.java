@@ -63,6 +63,7 @@ import java.util.List;
  * Created by frank on 2014-03-26.
  */
 public class MyVpnService extends VpnService implements Runnable {
+    public static final String CADir = Logger.getDiskCacheDir().getAbsolutePath();
     public static final String CAName = "PrivacyGuard_CA";
     public static final String CertName = "PrivacyGuard_Cert";
     public static final String KeyType = "PKCS12";
@@ -147,7 +148,7 @@ public class MyVpnService extends VpnService implements Runnable {
             return false;
         }
         forwarderPools = new ForwarderPools(this);
-        sslSocketFactoryFactory = CertificateManager.generateCACertificate(Logger.getDiskCacheDir().getAbsolutePath(), CAName,
+        sslSocketFactoryFactory = CertificateManager.initiateFactory(CADir, CAName,
                 CertName, KeyType, Password.toCharArray());
         return true;
     }
