@@ -1,7 +1,7 @@
-package com.PrivacyGuard.Application.Network.TCP;
+package com.PrivacyGuard.Application.Network.Protocol.TCP;
 
 import com.PrivacyGuard.Application.Logger;
-import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPPayLoad;
 
 import java.net.InetAddress;
 import java.util.Arrays;

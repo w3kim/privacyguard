@@ -21,8 +21,8 @@ package com.PrivacyGuard.Application.Network.Forwarder;
 
 import android.util.Pair;
 
-import com.PrivacyGuard.Application.MyVpnService;
-import com.PrivacyGuard.Application.Network.IP.IPDatagram;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPDatagram;
 import com.PrivacyGuard.Application.Logger;
 
 import java.util.Collections;
