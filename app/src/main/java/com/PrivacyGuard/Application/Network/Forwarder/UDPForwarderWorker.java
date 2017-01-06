@@ -1,25 +1,16 @@
 package com.PrivacyGuard.Application.Network.Forwarder;
 
 import com.PrivacyGuard.Application.Logger;
-import com.PrivacyGuard.Application.Network.IP.IPDatagram;
-import com.PrivacyGuard.Application.Network.IP.IPHeader;
-import com.PrivacyGuard.Application.Network.LocalServer;
-import com.PrivacyGuard.Application.Network.UDP.UDPDatagram;
-import com.PrivacyGuard.Application.Network.UDP.UDPHeader;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPHeader;
+import com.PrivacyGuard.Application.Network.Protocol.UDP.UDPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.UDP.UDPHeader;
 
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 
 /**

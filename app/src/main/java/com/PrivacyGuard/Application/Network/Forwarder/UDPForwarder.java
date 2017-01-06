@@ -20,20 +20,16 @@
 package com.PrivacyGuard.Application.Network.Forwarder;
 
 import com.PrivacyGuard.Application.Logger;
-import com.PrivacyGuard.Application.MyVpnService;
-import com.PrivacyGuard.Application.Network.IP.IPDatagram;
-import com.PrivacyGuard.Application.Network.IP.IPHeader;
-import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
-import com.PrivacyGuard.Application.Network.UDP.UDPDatagram;
-import com.PrivacyGuard.Application.Network.UDP.UDPHeader;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPPayLoad;
+import com.PrivacyGuard.Application.Network.Protocol.UDP.UDPDatagram;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 /**
  * Created by frank on 2014-03-29.

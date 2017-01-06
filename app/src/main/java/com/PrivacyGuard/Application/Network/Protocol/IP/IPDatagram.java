@@ -1,7 +1,7 @@
-package com.PrivacyGuard.Application.Network.IP;
+package com.PrivacyGuard.Application.Network.Protocol.IP;
 
-import com.PrivacyGuard.Application.Network.TCP.TCPDatagram;
-import com.PrivacyGuard.Application.Network.UDP.UDPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.TCP.TCPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.UDP.UDPDatagram;
 import com.PrivacyGuard.Utilities.ByteOperations;
 import com.PrivacyGuard.Application.Logger;
 
