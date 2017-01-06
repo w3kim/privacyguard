@@ -42,7 +42,6 @@ import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService.MyVpnServiceBin
 import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Utilities.CertificateManager;
 
-import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,6 +55,7 @@ public class MainActivity extends Activity {
     public static final int REQUEST_CERT = 1;
     private static String TAG = "MainActivity";
     private ArrayList<HashMap<String, String>> list;
+private boolean keyChainInstalled = false;
 
     private ToggleButton buttonConnect;
     private ListView listLeak;
@@ -80,7 +80,11 @@ public class MainActivity extends Activity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     Logger.d(TAG, "Connect toggled ON");
-                    startVPN();
+                    if(!keyChainInstalled){
+                        installCertificate();
+                    }else{
+                        startVPN();
+                    }
                 } else {
                     Logger.d(TAG, "Connect toggled OFF");
                     stopVPN();
@@ -172,11 +176,12 @@ public class MainActivity extends Activity {
      *
      */
     public void installCertificate() {
-
-        if (CertificateManager.isCACertificateInstalled(MyVpnService.CADir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password.toCharArray()))
+        boolean certInstalled = CertificateManager.isCACertificateInstalled(MyVpnService.CADir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
+        if (keyChainInstalled && certInstalled)
             return;
-
-        //CertificateManager.initiateFactory(MyVpnService.CADir, MyVpnService.CAName, MyVpnService.CertName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
+        if(!certInstalled) {
+            CertificateManager.initiateFactory(MyVpnService.CADir, MyVpnService.CAName, MyVpnService.CertName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
+        }
         Intent intent = KeyChain.createInstallIntent();
         try {
             Certificate cert = CertificateManager.getCACertificate(MyVpnService.CADir, MyVpnService.CAName);
@@ -196,10 +201,14 @@ public class MainActivity extends Activity {
      */
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
-        if(request == REQUEST_CERT){    // stub for UI enhancement
-            return;
-        }
-        if (result == RESULT_OK) {
+        if(request == REQUEST_CERT){
+            keyChainInstalled = result == RESULT_OK;
+            if(keyChainInstalled){
+                startVPN();
+            }else{
+                buttonConnect.setChecked(false);
+            }
+        }else if (result == RESULT_OK) {
             Logger.d(TAG, "Starting VPN service");
             mVPN.startVPN(this);
         }
