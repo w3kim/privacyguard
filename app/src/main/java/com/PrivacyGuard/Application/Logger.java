@@ -105,6 +105,14 @@ public class Logger {
         }
     }
 
+    public static void e(String tag, String msg, Throwable tr) {
+        if (BuildConfig.DEBUG) {
+            Log.e(tag, msg,tr);
+        } else {
+            logToFile(tag, msg + '\n' + Log.getStackTraceString(tr));
+        }
+    }
+
     // ignore verbose if release
     public static void v(String tag, String msg) {
         if (BuildConfig.DEBUG) {
