@@ -25,36 +25,37 @@ import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by y59song on 02/06/14.
  */
 public class TunWriteThread extends Thread {
     private final FileOutputStream localOut;
-    private final ConcurrentLinkedQueue<byte[]> writeQueue = new ConcurrentLinkedQueue<byte[]>();
+    private LinkedBlockingQueue<byte[]> writeQueue = new LinkedBlockingQueue<>();
 
     public TunWriteThread(FileDescriptor fd, MyVpnService vpnService) {
         localOut = new FileOutputStream(fd);
     }
 
     public void run() {
-        byte[] temp;
-        while (!isInterrupted()) {
-
-            while ((temp = writeQueue.poll()) == null) {
+        try {
+            while (!isInterrupted()) {
+                byte[] temp = writeQueue.take();
                 try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
+                    localOut.write(temp);
+                } catch (Exception e) {
                     e.printStackTrace();
+                    clean();
+                    return;
                 }
             }
-            try {
-                localOut.write(temp);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            clean();
         }
-        clean();
+        catch (InterruptedException e) {
+            e.printStackTrace();
+            clean();
+        }
     }
 
     public void write(byte[] data) {

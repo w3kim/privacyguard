@@ -11,39 +11,40 @@ import android.support.annotation.Nullable;
 import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Plugin.LeakReport.LeakCategory;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by frank on 2014-06-23.
  */
 public class LocationDetection implements IPlugin {
     private final static String TAG = LocationDetection.class.getSimpleName();
-    private final static boolean DEBUG = true;
-    private static final Object lock = new Object();
     private static long MIN_TIME_INTERVAL_PASSIVE = 60000; //one minute
     private static float MIN_DISTANCE_INTERVAL = 10; // 10 meters
     private static LocationManager mLocationManager;
-    private static HashMap<String, Location> mLocations = new HashMap<String, Location>();  //TODO: this actually leaks memory, any better ways?
+    private static Map<String, Location> mLocations = Collections.synchronizedMap(new HashMap<String, Location>());
 
     @Override
     @Nullable
     public LeakReport handleRequest(String requestStr) {
         for (Location loc : mLocations.values()) {
-            double latD = Math.round(loc.getLatitude() * 10) / 10.0;
-            double lonD = Math.round(loc.getLongitude() * 10) / 10.0;
-            String latS = "" + latD, lonS = "" + lonD;
-            if ((requestStr.contains(latS) && requestStr.contains(lonS)) || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
-                LeakReport rpt = new LeakReport(LeakCategory.LOCATION);
-                rpt.addLeak(new LeakInstance("location", latS + ":" + lonS));
-                return rpt;
-            }
+            //double latD = Math.round(loc.getLatitude() * 10) / 10.0;
+            //double lonD = Math.round(loc.getLongitude() * 10) / 10.0;
+            //String latS = String.valueOf(latD);
+            //String lonS = String.valueOf(lonD);
+            //if ((requestStr.contains(latS) && requestStr.contains(lonS)) || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
+            //    LeakReport rpt = new LeakReport(LeakCategory.LOCATION);
+            //    rpt.addLeak(new LeakInstance("location", latS + ":" + lonS));
+            //    return rpt;
+            //}
 
-            latD = ((int) (loc.getLatitude() * 10)) / 10.0;
-            lonD = ((int) (loc.getLongitude() * 10)) / 10.0;
-            latS = "" + latD;
-            lonS = "" + lonD;
-            if ((requestStr.contains(latS) && requestStr.contains(lonS)) || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
+            double latD = ((int) (loc.getLatitude() * 10)) / 10.0;
+            double lonD = ((int) (loc.getLongitude() * 10)) / 10.0;
+            String latS = String.valueOf(latD);
+            String lonS = String.valueOf(lonD);
+            if ((requestStr.contains(latS) && requestStr.contains(lonS))) {// || (requestStr.contains(latS.replace(".", "")) && requestStr.contains(lonS.replace(".", "")))) {
                 LeakReport rpt = new LeakReport(LeakCategory.LOCATION);
                 rpt.addLeak(new LeakInstance("location", latS + ":" + lonS));
                 return rpt;
@@ -70,7 +71,7 @@ public class LocationDetection implements IPlugin {
 
     @Override
     public void setContext(Context context) {
-        synchronized (lock) {
+        synchronized (mLocations) {
             if (mLocationManager == null) {
                 mLocationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
                 mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, MIN_TIME_INTERVAL_PASSIVE, MIN_DISTANCE_INTERVAL, new LocationUpdateListener(), Looper.getMainLooper());
@@ -85,11 +86,7 @@ public class LocationDetection implements IPlugin {
         for (String provider : providers) {
             Location loc = mLocationManager.getLastKnownLocation(provider);
             if (loc == null) continue;
-            if (!mLocations.containsKey(loc.getProvider())) {
-                synchronized (lock) {
-                    mLocations.put(loc.getProvider(), loc);
-                }
-            } else {
+            synchronized(mLocations) {
                 mLocations.put(loc.getProvider(), loc);
             }
         }
@@ -99,7 +96,9 @@ public class LocationDetection implements IPlugin {
     class LocationUpdateListener implements LocationListener {
         @Override
         public void onLocationChanged(Location loc) {
-            mLocations.put(loc.getProvider(), loc);
+            synchronized(mLocations) {
+                mLocations.put(loc.getProvider(), loc);
+            }
             Logger.logLastLocation(loc);
         }
 

@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
     private ArrayList<HashMap<String, String>> list;
 
     private ToggleButton buttonConnect;
-    private Switch asyncSwitch;
+    //private Switch asyncSwitch;
     private ListView listLeak;
     private MainListViewAdapter adapter;
 
@@ -89,18 +89,18 @@ public class MainActivity extends Activity {
             }
         });
 
-        asyncSwitch = (Switch) findViewById(R.id.async_switch);
-        asyncSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    PrivacyGuard.asynchronous = true;
-                    Logger.i(TAG, "asynchronous on");
-                } else {
-                    PrivacyGuard.asynchronous = false;
-                    Logger.i(TAG, "asynchronous off");
-                }
-            }
-        });
+        //asyncSwitch = (Switch) findViewById(R.id.async_switch);
+        //asyncSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        //    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        //       if (isChecked) {
+        //            PrivacyGuard.asynchronous = true;
+        //            Logger.i(TAG, "asynchronous on");
+        //        } else {
+        //            PrivacyGuard.asynchronous = false;
+        //            Logger.i(TAG, "asynchronous off");
+        //        }
+        //    }
+        //});
 
         listLeak = (ListView) findViewById(R.id.leaksList);
     }

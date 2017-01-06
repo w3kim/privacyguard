@@ -1,6 +1,6 @@
 package com.PrivacyGuard.Application.Network;
 
-import com.PrivacyGuard.Application.Network.Forwader.AbsForwarder;
+import com.PrivacyGuard.Application.Network.Forwarder.AbsForwarder;
 import com.PrivacyGuard.Application.Network.IP.IPDatagram;
 import com.PrivacyGuard.Application.Network.IP.IPHeader;
 
@@ -29,6 +29,8 @@ public class ConnectionInfo {
     return responseTransHeader;
   }
 
+  public InetAddress getDstAddress() { return serverAddress; }
+
   public void reset(IPDatagram ipDatagram) {
     this.clientAddress = ipDatagram.header().getSrcAddress();
     this.serverAddress = ipDatagram.header().getDstAddress();
@@ -39,7 +41,7 @@ public class ConnectionInfo {
     this.responseTransHeader = ipDatagram.payLoad().header().reverse();
   }
 
-  public void setup(AbsForwarder forwarder) {
-    forwarder.setup(clientAddress, clientPort, serverAddress, serverPort);
-  }
+ // public void setup(AbsForwarder forwarder) {
+  //  forwarder.setup(clientAddress, clientPort, serverAddress, serverPort);
+ // }
 }

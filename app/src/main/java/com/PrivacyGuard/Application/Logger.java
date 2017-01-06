@@ -34,33 +34,39 @@ public class Logger {
      * @return SD storage for cash or internal storage for cash
      */
     public static File getDiskCacheDir() {
-        File cacheFile = null;
+        File cacheDir = null;
         if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
                 || !Environment.isExternalStorageRemovable()) {
-            cacheFile = PrivacyGuard.getAppContext().getExternalCacheDir();
+            cacheDir = PrivacyGuard.getAppContext().getExternalCacheDir();
         }
-        if (cacheFile == null) {
+        if (cacheDir == null) {
             if (BuildConfig.DEBUG) {
                 Log.d("LoggerManager", "External Cache Directory not available.");
             }
-            cacheFile = PrivacyGuard.getAppContext().getCacheDir();
+            cacheDir = PrivacyGuard.getAppContext().getCacheDir();
         }
-        return cacheFile;
+        if (BuildConfig.DEBUG) {
+            Log.d("LoggerManager", "Logging to " + cacheDir);
+        }
+        return cacheDir;
     }
 
     public static File getDiskFileDir() {
-        File file = null;
+        File fileDir = null;
         if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
                 || !Environment.isExternalStorageRemovable()) {
-            file = PrivacyGuard.getAppContext().getExternalFilesDir(null);
+            fileDir = PrivacyGuard.getAppContext().getExternalFilesDir(null);
         }
-        if (file == null) {
+        if (fileDir == null) {
             if (BuildConfig.DEBUG) {
                 Log.d("LoggerManager", "External Cache Directory not available.");
             }
-            file = PrivacyGuard.getAppContext().getFilesDir();
+            fileDir = PrivacyGuard.getAppContext().getFilesDir();
         }
-        return file;
+        if (BuildConfig.DEBUG) {
+            Log.d("LoggerManager", "Logging to " + fileDir);
+        }
+        return fileDir;
     }
 
     public static void logToFile(String tag, String msg) {
@@ -114,25 +120,19 @@ public class Logger {
         }
     }
 
-    public static void logTraffic(String tag, String packageName,String appName, String ip, String msg, String category) {
+    public static void logTraffic(String packageName, String appName, String ip, String msg) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 
-            //out put to terminal first
-            Log.v(tag, appName + " " + msg);
-
             try {
                 PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
+                out.println("=========================");
                 out.println("Time : " + df.format(new Date()));
                 out.println(" [ " +  packageName+ " ]  "+ appName);
                 out.println("IP: "+ ip);
                 out.println("");
                 out.println("Request "+ msg);
                 out.println("");
-                if(category != null){
-                    out.println("Leaking: " + category);
-                    out.println("=========================");
-                }
                 out.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -140,7 +140,21 @@ public class Logger {
         }
     }
 
-    public static void logLastLocations(HashMap<String, Location> locations, boolean firstTime) {
+    public static void logLeak(String category) {
+         //log network traffic ONLY in debug build
+        if (BuildConfig.DEBUG) {
+
+            try {
+                PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(trafficFile, true)));
+                out.println("Leaking: " + category);
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void logLastLocations(Map<String, Location> locations, boolean firstTime) {
         //log network traffic ONLY in debug build
         if (BuildConfig.DEBUG) {
 

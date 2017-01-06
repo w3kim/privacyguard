@@ -17,7 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application.Network.Forwader;
+package com.PrivacyGuard.Application.Network.Forwarder;
 
 import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
 

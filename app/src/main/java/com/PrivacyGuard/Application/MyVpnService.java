@@ -33,7 +33,7 @@ import com.PrivacyGuard.Application.Activities.AppSummaryActivity;
 import com.PrivacyGuard.Application.Activities.R;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
 import com.PrivacyGuard.Plugin.LeakReport;
-import com.PrivacyGuard.Application.Network.Forwader.ForwarderPools;
+import com.PrivacyGuard.Application.Network.Forwarder.ForwarderPools;
 import com.PrivacyGuard.Application.Network.LocalServer;
 import com.PrivacyGuard.Application.Network.Resolver.MyClientResolver;
 import com.PrivacyGuard.Application.Network.Resolver.MyNetworkHostNameResolver;
@@ -126,21 +126,27 @@ public class MyVpnService extends VpnService implements Runnable {
 
     @Override
     public void run() {
-        setup_network();
+        if (!(setup_network()))
+            return;
         setup_workers();
         wait_to_close();
     }
 
-    private void setup_network() {
+    private boolean setup_network() {
         Builder b = new Builder();
         b.addAddress("10.8.0.1", 32);
         b.addDnsServer("8.8.8.8");
         b.addRoute("0.0.0.0", 0);
         b.setMtu(1500);
         mInterface = b.establish();
+        if (mInterface == null) {
+            Logger.d(TAG, "Failed to establish Builder interface");
+            return false;
+        }
         forwarderPools = new ForwarderPools(this);
         sslSocketFactoryFactory = CertificateManager.generateCACertificate(Logger.getDiskCacheDir().getAbsolutePath(), CAName,
                 CertName, KeyType, Password.toCharArray());
+        return true;
     }
 
     private void setup_workers() {
