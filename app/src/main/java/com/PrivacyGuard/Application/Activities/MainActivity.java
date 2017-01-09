@@ -33,7 +33,6 @@ import android.security.KeyChain;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.ToggleButton;
 
@@ -49,14 +48,11 @@ import com.PrivacyGuard.Utilities.FileUtils;
 import com.opencsv.CSVWriter;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Scanner;
 
 import javax.security.cert.CertificateEncodingException;
 
@@ -71,7 +67,7 @@ public class MainActivity extends Activity {
     //private Switch asyncSwitch;
     private ListView listLeak;
     private MainListViewAdapter adapter;
-    private DatabaseHandler mDbHandler;
+    private DatabaseHandler mDbHandler; // [w3kim@uwaterloo.ca] : factored out as an instance var
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -82,7 +78,7 @@ public class MainActivity extends Activity {
             startVPN();
         }
 
-
+        // mDbHandler (previously 'db') needs to be an instance variable for data exporting feature
         mDbHandler = new DatabaseHandler(this);
         mDbHandler.monthlyReset();
 
@@ -97,6 +93,9 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
 
+        if (!MyVpnService.isRunning()) {
+            startVPN();
+        }
         if (PrivacyGuard.doFilter) {
             buttonConnect.setChecked(true);
         }
@@ -198,16 +197,29 @@ public class MainActivity extends Activity {
         stopService(new Intent(this, MyVpnService.class));
     }
 
+    /**
+     * [w3kim@uwaterloo.ca]
+     * Update Filtering Keywords
+     *
+     * @param view UI view triggering this method
+     */
     public void updateFilterKeywords(View view) {
         new FileChooser(this).setFileListener(new FileChooser.FileSelectedListener() {
             @Override
             public void fileSelected(final File file) {
-                Log.e(TAG, file.getAbsolutePath());
-                File keywords = new File(getFilesDir().getAbsolutePath() + "/keywords.txt");
+                // this is the path where the chosen file gets copied to
+                String path = String.format("%s/%s",
+                        getFilesDir().getAbsolutePath(), KeywordDetection.KEYWORDS_FILE_NAME);
+
+                // check if there is an existing file
+                File keywords = new File(path);
                 if (keywords.exists()) {
                     keywords.delete();
                 }
+
+                // copy the file to the path
                 FileUtils.copyFile(file, keywords.getAbsolutePath());
+                // notify the plugin the file has been updated
                 KeywordDetection.invalidate();
             }
         }).showDialog();
@@ -217,9 +229,10 @@ public class MainActivity extends Activity {
      * [w3kim@uwaterloo.ca]
      * Toggle the VPN
      *
-     * Note that this method does not function as expected since `MyVpnService` does not correc
+     * This is a replacement for the CheckedChangeListener that was in onCreate(Bundle) earlier.
+     * Note that this method does not function as expected since `MyVpnService` does not correctly.
      *
-     * @param view
+     * @param view UI view triggering this method
      */
     public void toggleVPN(View view) {
         ToggleButton toggle = (ToggleButton) view;

@@ -85,7 +85,7 @@ public class MyVpnService extends VpnService implements Runnable {
             LocationDetection.class,
             PhoneStateDetection.class,
             ContactDetection.class,
-            //
+            // newly added for KeywordDetection
             KeywordDetection.class
     };
     private ArrayList<IPlugin> plugins;

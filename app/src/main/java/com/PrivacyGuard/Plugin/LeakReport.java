@@ -12,7 +12,7 @@ public class LeakReport {
         LOCATION,
         CONTACT,
         DEVICE,
-        KEYWORD
+        KEYWORD /* * [w3kim@uwaterloo.ca] added for keyword detection */
     }
 
     public String packageName;

@@ -2,7 +2,6 @@ package com.PrivacyGuard.Plugin;
 
 import android.content.Context;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,16 +12,19 @@ import java.util.Scanner;
 import java.util.Set;
 
 /**
- * Created by w3kim on 2016-11-08.
+ * @author Eric Woojung Kim [w3kim@uwaterloo.ca]
  */
-
 public class KeywordDetection implements IPlugin {
 
-    private static final String TAG = KeywordDetection.class.getSimpleName();
-    private static final String KEYWORDS_FILE_NAME = "keywords.txt";
+    public static final String KEYWORDS_FILE_NAME = "keywords.txt";
 
-    private static boolean init = false;
+    private static final String TAG = KeywordDetection.class.getSimpleName();
     private static final Set<String> keywords = new HashSet<>();
+    private static boolean init = false;
+
+    public static void invalidate() {
+        init = false;
+    }
 
     @Override
     public LeakReport handleRequest(String request) {
@@ -34,7 +36,7 @@ public class KeywordDetection implements IPlugin {
             }
         }
 
-        if(leaks.isEmpty()){
+        if (leaks.isEmpty()) {
             return null;
         }
 
@@ -78,9 +80,5 @@ public class KeywordDetection implements IPlugin {
             Log.d(TAG, "Keywords refreshed; " + keywords.size() + " keywords are registered");
         }
         init = true;
-    }
-
-    public static void invalidate() {
-        init = false;
     }
 }

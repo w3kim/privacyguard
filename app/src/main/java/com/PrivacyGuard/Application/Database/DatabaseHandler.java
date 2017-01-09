@@ -5,7 +5,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 import android.util.Patterns;
 
 import com.PrivacyGuard.Application.Logger;
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by MAK on 03/11/2015.
@@ -267,6 +265,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         return leakList;
     }
 
+    // w3kim@uwaterloo.ca : simple helper
     private boolean isHttpMethod(String s) {
         return s.equals("GET")
                 || s.equals("POST")
@@ -277,7 +276,15 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 || s.equals("OPTIONS");
     }
 
-    // w3kim@uwaterloo.ca
+    /**
+     * [w3kim@uwaterloo.ca]
+     * Parse an URL and Record in Naive Way
+     *
+     * @param appName app identifier
+     * @param packageName app package name
+     * @param request network request string
+     * @return true iff there is a parsable URL present in request
+     */
     public boolean addUrlIfAny(String appName, String packageName, String request) {
         if (request == null
                 || request.isEmpty()

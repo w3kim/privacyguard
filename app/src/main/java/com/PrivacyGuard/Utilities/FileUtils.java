@@ -9,10 +9,10 @@ import java.io.IOException;
 
 public class FileUtils {
     /**
-     * Copy an asset file to a local destination.
+     * Copy a source file to a local destination.
      *
-     * @param source
-     * @param localPath
+     * @param source a File object to copy from
+     * @param localPath a path to where the source file gets copied
      */
     public static void copyFile(File source, String localPath) {
         try {
