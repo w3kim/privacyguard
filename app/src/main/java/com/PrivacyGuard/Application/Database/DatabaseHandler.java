@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 import android.util.Patterns;
 
 import com.PrivacyGuard.Application.Logger;
@@ -293,30 +294,35 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
         String statusLine = null;
         String hostLine = null;
-        Scanner scanner = new Scanner(request);
-        while (scanner.hasNextLine()) {
-            String line = scanner.nextLine().trim();
-            if (isHttpMethod(line.split(" ")[0])) {
-                statusLine = line;
-            } else if (line.startsWith("Host")) {
-                hostLine = line;
+        try {
+            Scanner scanner = new Scanner(request);
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine().trim();
+                if (isHttpMethod(line.split(" ")[0])) {
+                    statusLine = line;
+                } else if (line.startsWith("Host")) {
+                    hostLine = line;
+                }
             }
-        }
-        if (statusLine != null && hostLine != null) {
-            Matcher matcher = Patterns.WEB_URL.matcher(hostLine);
-            if (matcher.find()) {
-                String[] statusLineTokens = statusLine.split(" ");
-                String resWithParams = statusLineTokens[1];
+            if (statusLine != null && hostLine != null) {
+                Matcher matcher = Patterns.WEB_URL.matcher(hostLine);
+                if (matcher.find()) {
+                    String[] statusLineTokens = statusLine.split(" ");
+                    String resWithParams = statusLineTokens[1];
 
-                int queryParamsStart = resWithParams.indexOf('?');
-                int cut = (queryParamsStart < 0) ? resWithParams.length() : queryParamsStart;
-                String res = resWithParams.substring(0, cut);
-                String queryParams = (queryParamsStart < 0) ? "" : resWithParams.substring(res.length() + 1);
+                    int queryParamsStart = resWithParams.indexOf('?');
+                    int cut = (queryParamsStart < 0) ? resWithParams.length() : queryParamsStart;
+                    String res = resWithParams.substring(0, cut);
+                    String queryParams = (queryParamsStart < 0) ? "" : resWithParams.substring(res.length() + 1);
 
-                String host = matcher.group();
-                addUrl(appName, packageName, host + res + '?' + queryParams, host, res, queryParams);
-                return true;
+                    String host = matcher.group();
+                    addUrl(appName, packageName, host + res + '?' + queryParams, host, res, queryParams);
+                    return true;
+                }
             }
+        } catch (Exception e) {
+            // just in case
+            Log.e(TAG, "Failed to parse an URL (appName=" + appName + ", packageName=" + packageName + "): " + e.getMessage());
         }
 
         return false;
