@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by MAK on 03/11/2015.
@@ -267,6 +266,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         return leakList;
     }
 
+    // w3kim@uwaterloo.ca : simple helper
     private boolean isHttpMethod(String s) {
         return s.equals("GET")
                 || s.equals("POST")
@@ -277,7 +277,15 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 || s.equals("OPTIONS");
     }
 
-    // w3kim@uwaterloo.ca
+    /**
+     * [w3kim@uwaterloo.ca]
+     * Parse an URL and Record in Naive Way
+     *
+     * @param appName app identifier
+     * @param packageName app package name
+     * @param request network request string
+     * @return true iff there is a parsable URL present in request
+     */
     public boolean addUrlIfAny(String appName, String packageName, String request) {
         if (request == null
                 || request.isEmpty()
@@ -286,30 +294,35 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
         String statusLine = null;
         String hostLine = null;
-        Scanner scanner = new Scanner(request);
-        while (scanner.hasNextLine()) {
-            String line = scanner.nextLine().trim();
-            if (isHttpMethod(line.split(" ")[0])) {
-                statusLine = line;
-            } else if (line.startsWith("Host")) {
-                hostLine = line;
+        try {
+            Scanner scanner = new Scanner(request);
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine().trim();
+                if (isHttpMethod(line.split(" ")[0])) {
+                    statusLine = line;
+                } else if (line.startsWith("Host")) {
+                    hostLine = line;
+                }
             }
-        }
-        if (statusLine != null && hostLine != null) {
-            Matcher matcher = Patterns.WEB_URL.matcher(hostLine);
-            if (matcher.find()) {
-                String[] statusLineTokens = statusLine.split(" ");
-                String resWithParams = statusLineTokens[1];
+            if (statusLine != null && hostLine != null) {
+                Matcher matcher = Patterns.WEB_URL.matcher(hostLine);
+                if (matcher.find()) {
+                    String[] statusLineTokens = statusLine.split(" ");
+                    String resWithParams = statusLineTokens[1];
 
-                int queryParamsStart = resWithParams.indexOf('?');
-                int cut = (queryParamsStart < 0) ? resWithParams.length() : queryParamsStart;
-                String res = resWithParams.substring(0, cut);
-                String queryParams = (queryParamsStart < 0) ? "" : resWithParams.substring(res.length() + 1);
+                    int queryParamsStart = resWithParams.indexOf('?');
+                    int cut = (queryParamsStart < 0) ? resWithParams.length() : queryParamsStart;
+                    String res = resWithParams.substring(0, cut);
+                    String queryParams = (queryParamsStart < 0) ? "" : resWithParams.substring(res.length() + 1);
 
-                String host = matcher.group();
-                addUrl(appName, packageName, host + res + '?' + queryParams, host, res, queryParams);
-                return true;
+                    String host = matcher.group();
+                    addUrl(appName, packageName, host + res + '?' + queryParams, host, res, queryParams);
+                    return true;
+                }
             }
+        } catch (Exception e) {
+            // just in case
+            Log.e(TAG, "Failed to parse an URL (appName=" + appName + ", packageName=" + packageName + "): " + e.getMessage());
         }
 
         return false;

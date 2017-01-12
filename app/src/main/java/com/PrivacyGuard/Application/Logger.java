@@ -25,7 +25,6 @@ public class Logger {
     private static File logFile = new File(getDiskCacheDir(), "Log");
     private static File trafficFile = new File(getDiskFileDir(), "NetworkTraffic");
     private static File locationFile = new File(getDiskFileDir(), "LastLocations");
-    private static File trafficFile2 = new File(Environment.getExternalStorageDirectory(), "privacyguard/traffic.log");
 
     /**
      * Returns a dir  for cache storage
