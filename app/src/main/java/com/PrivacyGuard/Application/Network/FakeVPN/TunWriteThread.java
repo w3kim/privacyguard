@@ -17,14 +17,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application.Network;
+package com.PrivacyGuard.Application.Network.FakeVPN;
 
-import com.PrivacyGuard.Application.MyVpnService;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**

@@ -20,26 +20,29 @@
 package com.PrivacyGuard.Application.Activities;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ComponentName;
-import android.content.DialogInterface;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.IBinder;
 import android.security.KeyChain;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.ToggleButton;
 
 import com.PrivacyGuard.Application.Database.AppSummary;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
 import com.PrivacyGuard.Application.Logger;
-import com.PrivacyGuard.Application.MyVpnService;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService.MyVpnServiceBinder;
 import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Plugin.KeywordDetection;
 import com.PrivacyGuard.Utilities.CertificateManager;
@@ -49,58 +52,109 @@ import com.opencsv.CSVWriter;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import javax.security.cert.Certificate;
 import javax.security.cert.CertificateEncodingException;
 
 public class MainActivity extends Activity {
 
-    public static final boolean debug = false;
+    //public static final boolean debug = false;
     private static String TAG = "MainActivity";
-    private Intent intent;
+    private static final int REQUEST_VPN = 1;
+    public static final int REQUEST_CERT = 2;
     private ArrayList<HashMap<String, String>> list;
 
     private ToggleButton buttonConnect;
-    //private Switch asyncSwitch;
     private ListView listLeak;
     private MainListViewAdapter adapter;
     private DatabaseHandler mDbHandler; // [w3kim@uwaterloo.ca] : factored out as an instance var
 
+    private boolean bounded = false;
+    private boolean keyChainInstalled = false;
+    ServiceConnection mSc;
+    MyVpnService mVPN;
+
+    /**
+     * Called when the activity is first created.
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        intent = new Intent(this, MyVpnService.class);
-
-        if (!MyVpnService.isRunning()) {
-            startVPN();
-        }
-
-        // mDbHandler (previously 'db') needs to be an instance variable for data exporting feature
-        mDbHandler = new DatabaseHandler(this);
-        mDbHandler.monthlyReset();
-
-        installCertificate();
 
         setContentView(R.layout.activity_main);
+
         buttonConnect = (ToggleButton) findViewById(R.id.connect_button);
         listLeak = (ListView) findViewById(R.id.leaksList);
+
+        buttonConnect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                Logger.d(TAG, "Connect toggled " + isChecked);
+                if (isChecked && !MyVpnService.isRunning()) {
+                    Logger.d(TAG, "Connect toggled ON");
+                    if (!keyChainInstalled) {
+                        installCertificate();
+                    } else {
+                        startVPN();
+                    }
+                } else {
+                    Logger.d(TAG, "Connect toggled OFF");
+                    stopVPN();
+                }
+            }
+        });
+
+
+        /** use bound service here because stopservice() doesn't immediately trigger onDestroy of VPN service */
+        mSc = new ServiceConnection() {
+
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Logger.d(TAG, "VPN Service connected");
+                mVPN = ((MyVpnServiceBinder) service).getService();
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                Logger.d(TAG, "VPN Service disconnected");
+            }
+        };
+
+        mDbHandler = new DatabaseHandler(this);
+        mDbHandler.monthlyReset();
+        installCertificate();
+    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (!bounded) {
+            Intent service = new Intent(this, MyVpnService.class);
+            this.bindService(service, mSc, Context.BIND_AUTO_CREATE);
+            bounded = true;
+        }
+        buttonConnect.setChecked(MyVpnService.isRunning());
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        if (!MyVpnService.isRunning()) {
-            startVPN();
-        }
-        if (PrivacyGuard.doFilter) {
-            buttonConnect.setChecked(true);
-        }
         populateLeakList();
+
     }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (bounded) {//must unbind the service otherwise the ServiceConnection will be leaked.
+            this.unbindService(mSc);
+            bounded = false;
+        }
+    }
+
 
     /**
      *
@@ -141,60 +195,80 @@ public class MainActivity extends Activity {
      *
      */
     public void installCertificate() {
-        String Dir = Logger.getDiskCacheDir().getAbsolutePath();
-        try {
-            if (CertificateManager.isCACertificateInstalled(Dir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password))
-                return;
-        } catch (KeyStoreException e) {
-            e.printStackTrace();
+        boolean certInstalled = CertificateManager.isCACertificateInstalled(MyVpnService.CADir, MyVpnService.CAName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
+        if (keyChainInstalled && certInstalled)
+            return;
+        if (!certInstalled) {
+            CertificateManager.initiateFactory(MyVpnService.CADir, MyVpnService.CAName, MyVpnService.CertName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
         }
-        CertificateManager.generateCACertificate(Dir, MyVpnService.CAName, MyVpnService.CertName, MyVpnService.KeyType, MyVpnService.Password.toCharArray());
         Intent intent = KeyChain.createInstallIntent();
         try {
-            intent.putExtra(KeyChain.EXTRA_CERTIFICATE, CertificateManager.getCACertificate(Dir, MyVpnService.CAName).getEncoded());
+            Certificate cert = CertificateManager.getCACertificate(MyVpnService.CADir, MyVpnService.CAName);
+            if (cert != null) {
+                intent.putExtra(KeyChain.EXTRA_CERTIFICATE, cert.getEncoded());
+                intent.putExtra(KeyChain.EXTRA_NAME, MyVpnService.CAName);
+                startActivityForResult(intent, REQUEST_CERT);
+            }
         } catch (CertificateEncodingException e) {
-            e.printStackTrace();
+            Logger.e(TAG, "Certificate Encoding Error", e);
         }
-        intent.putExtra(KeyChain.EXTRA_NAME, MyVpnService.CAName);
-        startActivity(intent);
+
     }
 
+    /**
+     * Gets called immediately before onResume() when activity is re-starting
+     */
     @Override
-    // Gets called immediately before onResume() when activity is re-starting
     protected void onActivityResult(int request, int result, Intent data) {
-        if (result == RESULT_OK) {
-            Logger.d(TAG, "Starting VPN service");
-            ComponentName service = startService(intent);
-            if (service == null) {
-                Logger.w(TAG, "Failed to start VPN service");
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setMessage(R.string.mainActivity_warn_dialog_msg)
-                        .setTitle(R.string.mainActivity_warn_dialog_title)
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                dialog.cancel();
-                            }
-                        });
-                AlertDialog warnDialog = builder.create();
-                warnDialog.show();
+        if (request == REQUEST_CERT) {
+            keyChainInstalled = result == RESULT_OK;
+            if (keyChainInstalled) {
+                startVPN();
             } else {
-                Logger.d(TAG, "VPN service started");
+                buttonConnect.setChecked(false);
+            }
+        } else if (request == REQUEST_VPN) {
+            if (result == RESULT_OK) {
+                Logger.d(TAG, "Starting VPN service");
+                mVPN.startVPN(this);
+            } else {
+                buttonConnect.setChecked(false);    // update UI in case user doesn't give consent to VPN
             }
         }
+
     }
 
+
     private void startVPN() {
+        if (!bounded) {
+            Intent service = new Intent(this, MyVpnService.class);
+            this.bindService(service, mSc, Context.BIND_AUTO_CREATE);
+            bounded = true;
+        }
+        /**
+         * prepare() sometimes would misbehave:
+         * https://code.google.com/p/android/issues/detail?id=80074
+         *
+         * if this affects our app, we can let vpnservice update main activity for status
+         * http://stackoverflow.com/questions/4111398/notify-activity-from-service
+         *
+         */
         Intent intent = VpnService.prepare(this);
+        Logger.d(TAG, "VPN prepare done");
         if (intent != null) {
-            startActivityForResult(intent, 0);
+            startActivityForResult(intent, REQUEST_VPN);
         } else {
-            onActivityResult(0, RESULT_OK, null);
+            onActivityResult(REQUEST_VPN, RESULT_OK, null);
         }
     }
 
     private void stopVPN() {
-        // w3kim: MyVpnService does not properly respond to stop signal
-        stopService(new Intent(this, MyVpnService.class));
+        Logger.d(TAG, "Stopping VPN service");
+        if (bounded) {
+            this.unbindService(mSc);
+            bounded = false;
+        }
+        mVPN.stopVPN();
     }
 
     /**
@@ -223,29 +297,6 @@ public class MainActivity extends Activity {
                 KeywordDetection.invalidate();
             }
         }).showDialog();
-    }
-
-    /**
-     * [w3kim@uwaterloo.ca]
-     * Toggle the VPN
-     *
-     * This is a replacement for the CheckedChangeListener that was in onCreate(Bundle) earlier.
-     * Note that this method does not function as expected since `MyVpnService` does not correctly.
-     *
-     * @param view UI view triggering this method
-     */
-    public void toggleVPN(View view) {
-        ToggleButton toggle = (ToggleButton) view;
-        String value = toggle.getText().toString();
-        if (value.equalsIgnoreCase("on")) {
-            Log.d(TAG, "on");
-            if (!MyVpnService.isRunning()) startVPN();
-            PrivacyGuard.doFilter = true;
-        } else {
-            Log.d(TAG, "off");
-            if (MyVpnService.isRunning()) stopVPN();
-            PrivacyGuard.doFilter = false;
-        }
     }
 
     /**

@@ -17,31 +17,34 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.PrivacyGuard.Application;
+package com.PrivacyGuard.Application.Network.FakeVPN;
 
-import android.app.ActivityManager;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.net.VpnService;
+import android.os.Binder;
+import android.os.IBinder;
+import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.support.v4.app.NotificationCompat;
 
+import com.PrivacyGuard.Application.ActionReceiver;
 import com.PrivacyGuard.Application.Activities.AppSummaryActivity;
 import com.PrivacyGuard.Application.Activities.R;
 import com.PrivacyGuard.Application.Database.DatabaseHandler;
-import com.PrivacyGuard.Plugin.KeywordDetection;
-import com.PrivacyGuard.Plugin.LeakReport;
+import com.PrivacyGuard.Application.Logger;
 import com.PrivacyGuard.Application.Network.Forwarder.ForwarderPools;
 import com.PrivacyGuard.Application.Network.LocalServer;
 import com.PrivacyGuard.Application.Network.Resolver.MyClientResolver;
 import com.PrivacyGuard.Application.Network.Resolver.MyNetworkHostNameResolver;
-import com.PrivacyGuard.Application.Network.TunReadThread;
-import com.PrivacyGuard.Application.Network.TunWriteThread;
+import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Plugin.ContactDetection;
 import com.PrivacyGuard.Plugin.IPlugin;
+import com.PrivacyGuard.Plugin.KeywordDetection;
+import com.PrivacyGuard.Plugin.LeakReport;
 import com.PrivacyGuard.Plugin.LocationDetection;
 import com.PrivacyGuard.Plugin.PhoneStateDetection;
 import com.PrivacyGuard.Utilities.CertificateManager;
@@ -51,21 +54,26 @@ import org.sandrop.webscarab.plugin.proxy.SSLSocketFactoryFactory;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 
 /**
  * Created by frank on 2014-03-26.
  */
 public class MyVpnService extends VpnService implements Runnable {
+    public static final String CADir = Logger.getDiskCacheDir().getAbsolutePath();
     public static final String CAName = "PrivacyGuard_CA";
     public static final String CertName = "PrivacyGuard_Cert";
     public static final String KeyType = "PKCS12";
     public static final String Password = "";
-    private static final String TAG = MyVpnService.class.getSimpleName();
+
+
+    private static final String TAG = "MyVpnService";
     private static final boolean DEBUG = true;
+    private static boolean running = false;
     private static HashMap<String, Integer[]> notificationMap = new HashMap<String, Integer[]>();
+
     //The virtual network interface, get and return packets to it
     private ParcelFileDescriptor mInterface;
     private TunWriteThread writeThread;
@@ -94,43 +102,44 @@ public class MyVpnService extends VpnService implements Runnable {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
     public static boolean isRunning() {
-        //TODO: this actually doesn't detect if user stopped the service
-        ActivityManager activityManager = (ActivityManager) PrivacyGuard.getAppContext().getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningServiceInfo> serviceList = activityManager.getRunningServices(30);
-
-        for (ActivityManager.RunningServiceInfo serviceInfo : serviceList) {
-            if (serviceInfo.service.getClassName().equals(MyVpnService.class.getName()))
-                return true;
-        }
-
-        return false;
+        /** http://stackoverflow.com/questions/600207/how-to-check-if-a-service-is-running-on-android */
+        return running;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Logger.d(TAG, "onStartCommand");
         uiThread = new Thread(this);
         uiThread.start();
-        return 0;
+        return START_STICKY_COMPATIBILITY;
     }
 
     @Override
+    public IBinder onBind(Intent intent) {
+        return new MyVpnServiceBinder();
+    }
+
+    @Override
+    public void onRevoke() {
+        Logger.d(TAG, "onRevoke");
+        stop();
+        super.onRevoke();
+    }
+
+
+    @Override
     public void onDestroy() {
+        Logger.d(TAG, "onDestroy");
+        stop();
         super.onDestroy();
-        if (mInterface == null) return;
-        try {
-            readThread.interrupt();
-            writeThread.interrupt();
-            localServer.interrupt();
-            mInterface.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
     }
 
     @Override
     public void run() {
         if (!(setup_network()))
             return;
+        running = true;
         setup_workers();
         wait_to_close();
     }
@@ -147,7 +156,7 @@ public class MyVpnService extends VpnService implements Runnable {
             return false;
         }
         forwarderPools = new ForwarderPools(this);
-        sslSocketFactoryFactory = CertificateManager.generateCACertificate(Logger.getDiskCacheDir().getAbsolutePath(), CAName,
+        sslSocketFactoryFactory = CertificateManager.initiateFactory(CADir, CAName,
                 CertName, KeyType, Password.toCharArray());
         return true;
     }
@@ -290,5 +299,47 @@ public class MyVpnService extends VpnService implements Runnable {
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         mNotificationManager.cancel(id);
+    }
+
+
+    private void stop() {
+        running = false;
+        if (mInterface == null) return;
+        Logger.d(TAG, "Stopping");
+        try {
+            readThread.interrupt();
+            writeThread.interrupt();
+            localServer.interrupt();
+            mInterface.close();
+        } catch (IOException e) {
+            Logger.e(TAG, e.toString() + "\n" + Arrays.toString(e.getStackTrace()));
+        }
+        mInterface = null;
+    }
+
+    public void startVPN(Context context) {
+        Intent intent = new Intent(context, MyVpnService.class);
+        context.startService(intent);
+    }
+
+    public void stopVPN() {
+        stop();
+        stopSelf();
+    }
+
+    public class MyVpnServiceBinder extends Binder {
+        public MyVpnService getService() {
+            // Return this instance of MyVpnService so clients can call public methods
+            return MyVpnService.this;
+        }
+
+        @Override
+        protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) {
+            if (code == IBinder.LAST_CALL_TRANSACTION) {
+                onRevoke();
+                return true;
+            }
+            return false;
+        }
     }
 }

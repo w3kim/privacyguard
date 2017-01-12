@@ -4,7 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import com.PrivacyGuard.Application.MyVpnService;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
 import org.sandrop.webscarab.model.ConnectionDescriptor;
 import org.sandrop.webscarab.plugin.proxy.SiteData;
 import org.sandroproxy.utils.DNSProxy;

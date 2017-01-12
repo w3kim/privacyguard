@@ -62,7 +62,7 @@
         <receiver android:name="com.PrivacyGuard.Application.ActionReceiver"/>
 
         <service
-            android:name="com.PrivacyGuard.Application.MyVpnService"
+            android:name="com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService" />

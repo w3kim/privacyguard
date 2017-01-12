@@ -1,8 +1,8 @@
-package com.PrivacyGuard.Application.Network;
+package com.PrivacyGuard.Application.Network.Protocol;
 
-import com.PrivacyGuard.Application.Network.Forwarder.AbsForwarder;
-import com.PrivacyGuard.Application.Network.IP.IPDatagram;
-import com.PrivacyGuard.Application.Network.IP.IPHeader;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPHeader;
+import com.PrivacyGuard.Application.Network.Protocol.TransportHeader;
 
 import java.net.InetAddress;
 

@@ -20,10 +20,8 @@
 package com.PrivacyGuard.Application.Network.Forwarder;
 
 
-import android.util.Log;
-
 import com.PrivacyGuard.Application.Logger;
-import com.PrivacyGuard.Application.MyVpnService;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
 import com.PrivacyGuard.Application.PrivacyGuard;
 import com.PrivacyGuard.Plugin.IPlugin;
 import com.PrivacyGuard.Plugin.LeakReport;
@@ -40,7 +38,6 @@ import java.nio.channels.SocketChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 

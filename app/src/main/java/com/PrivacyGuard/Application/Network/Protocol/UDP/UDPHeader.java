@@ -1,6 +1,6 @@
-package com.PrivacyGuard.Application.Network.UDP;
+package com.PrivacyGuard.Application.Network.Protocol.UDP;
 
-import com.PrivacyGuard.Application.Network.TransportHeader;
+import com.PrivacyGuard.Application.Network.Protocol.TransportHeader;
 import com.PrivacyGuard.Utilities.ByteOperations;
 
 import java.util.Arrays;
