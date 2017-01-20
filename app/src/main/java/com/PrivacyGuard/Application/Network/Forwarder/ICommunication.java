@@ -19,7 +19,7 @@
 
 package com.PrivacyGuard.Application.Network.Forwarder;
 
-import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPPayLoad;
 
 /**
  * Created by frank on 2014-03-27.

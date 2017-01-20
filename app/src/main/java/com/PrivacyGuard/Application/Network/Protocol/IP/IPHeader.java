@@ -1,6 +1,6 @@
-package com.PrivacyGuard.Application.Network.IP;
+package com.PrivacyGuard.Application.Network.Protocol.IP;
 
-import com.PrivacyGuard.Application.Network.AbsHeader;
+import com.PrivacyGuard.Application.Network.Protocol.AbsHeader;
 import com.PrivacyGuard.Utilities.ByteOperations;
 
 import java.net.InetAddress;

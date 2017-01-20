@@ -1,7 +1,7 @@
-package com.PrivacyGuard.Application.Network.UDP;
+package com.PrivacyGuard.Application.Network.Protocol.UDP;
 
 import android.util.Log;
-import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPPayLoad;
 import com.PrivacyGuard.Utilities.ByteOperations;
 
 import java.net.InetAddress;

@@ -10,7 +10,7 @@ android {
         }
     }
     compileSdkVersion 22
-    buildToolsVersion "23.0.2"
+    buildToolsVersion '25.0.2'
     defaultConfig {
         applicationId "com.PrivacyGuard"
         minSdkVersion 18

@@ -1,6 +1,6 @@
-package com.PrivacyGuard.Application.Network.TCP;
+package com.PrivacyGuard.Application.Network.Protocol.TCP;
 
-import com.PrivacyGuard.Application.Network.TransportHeader;
+import com.PrivacyGuard.Application.Network.Protocol.TransportHeader;
 import com.PrivacyGuard.Utilities.ByteOperations;
 
 import java.nio.ByteBuffer;

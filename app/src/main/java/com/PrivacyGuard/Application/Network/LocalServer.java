@@ -3,7 +3,7 @@ package com.PrivacyGuard.Application.Network;
 import android.util.Log;
 
 import com.PrivacyGuard.Application.Logger;
-import com.PrivacyGuard.Application.MyVpnService;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
 import com.PrivacyGuard.Application.Network.Forwarder.LocalServerForwarder;
 import com.PrivacyGuard.Application.Network.SSL.SSLSocketBuilder;
 

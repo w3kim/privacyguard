@@ -20,12 +20,10 @@
 package com.PrivacyGuard.Application.Network.Forwarder;
 
 import com.PrivacyGuard.Application.Logger;
-import com.PrivacyGuard.Application.MyVpnService;
-import com.PrivacyGuard.Application.Network.IP.IPDatagram;
-import com.PrivacyGuard.Application.Network.IP.IPHeader;
-import com.PrivacyGuard.Application.Network.IP.IPPayLoad;
-
-import java.net.InetAddress;
+import com.PrivacyGuard.Application.Network.FakeVPN.MyVpnService;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPDatagram;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPHeader;
+import com.PrivacyGuard.Application.Network.Protocol.IP.IPPayLoad;
 
 /**
  * Created by frank on 2014-03-29.
